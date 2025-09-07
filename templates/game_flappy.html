@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - 飞翔小鸟</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6rem 2rem 2rem 2rem;
+        }
+
+        .game-info {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .game-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .game-controls {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 100%);
+            box-shadow: var(--shadow);
+        }
+
+        .back-link {
+            margin-top: 2rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <a href="/games" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <div class="game-container">
+        <div class="game-info">
+            <h1 class="game-title">飞翔小鸟</h1>
+            <div class="game-controls">{{ text.game_controls }}: 点击或按空格键让小鸟飞翔</div>
+            <div class="score">得分: <span id="score">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <a href="/games" class="back-link">{{ text.back_home }}</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        // Game variables
+        let gameRunning = false;
+        let score = 0;
+        let gameSpeed = 1;
+
+        // Bird
+        const bird = {
+            x: 50,
+            y: canvas.height / 2,
+            width: 30,
+            height: 30,
+            velocity: 0,
+            gravity: 0.5,
+            jump: -8
+        };
+
+        // Pipes
+        const pipes = [];
+        const pipeWidth = 60;
+        const pipeGap = 150;
+        const pipeSpeed = 2;
+
+        // Game loop
+        let animationId;
+
+        function initGame() {
+            bird.y = canvas.height / 2;
+            bird.velocity = 0;
+            pipes.length = 0;
+            score = 0;
+            gameSpeed = 1;
+            scoreElement.textContent = score;
+        }
+
+        function createPipe() {
+            const pipeHeight = Math.random() * (canvas.height - pipeGap - 100) + 50;
+            pipes.push({
+                x: canvas.width,
+                topHeight: pipeHeight,
+                bottomY: pipeHeight + pipeGap,
+                bottomHeight: canvas.height - pipeHeight - pipeGap,
+                passed: false
+            });
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Update bird
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Create pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                createPipe();
+            }
+
+            // Update pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const pipe = pipes[i];
+                pipe.x -= pipeSpeed;
+
+                // Check if bird passed pipe
+                if (!pipe.passed && pipe.x + pipeWidth < bird.x) {
+                    pipe.passed = true;
+                    score++;
+                    scoreElement.textContent = score;
+                    gameSpeed += 0.05;
+                }
+
+                // Remove pipes that are off screen
+                if (pipe.x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+            }
+
+            // Check collisions
+            if (bird.y < 0 || bird.y + bird.height > canvas.height) {
+                gameOver();
+                return;
+            }
+
+            // Check pipe collisions
+            for (const pipe of pipes) {
+                if (bird.x < pipe.x + pipeWidth &&
+                    bird.x + bird.width > pipe.x &&
+                    (bird.y < pipe.topHeight || bird.y + bird.height > pipe.bottomY)) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            // Draw pipes
+            ctx.fillStyle = '#228B22';
+            for (const pipe of pipes) {
+                // Top pipe
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                // Bottom pipe
+                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+            }
+
+            // Draw bird
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+            
+            // Bird eye
+            ctx.fillStyle = '#000';
+            ctx.fillRect(bird.x + 20, bird.y + 8, 6, 6);
+            
+            // Bird beak
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(bird.x + 30, bird.y + 12, 8, 6);
+
+            // Draw score
+            ctx.fillStyle = '#000';
+            ctx.font = '24px Arial';
+            ctx.fillText('得分: ' + score, 10, 30);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            alert('游戏结束！最终得分: ' + score);
+            initGame();
+        }
+
+        function jump() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gameLoop();
+            } else {
+                bird.velocity = bird.jump;
+            }
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', jump);
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        // Initialize game
+        initGame();
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.pacman_game }} - {{ text.site_name }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            margin-top: 5rem;
+        }
+
+        .game-container {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 200px;
+        }
+
+        .info-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .controls {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .controls h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .controls p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+
+        .game-over h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .game-over p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            
+            .game-info {
+                flex-direction: row;
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .info-card {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <a href="/games" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="game-container">
+            <div class="game-area">
+                <h1 class="game-title">{{ text.pacman_game }}</h1>
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+            </div>
+            
+            <div class="game-info">
+                <div class="info-card">
+                    <div class="info-label">{{ text.score }}</div>
+                    <div class="info-value" id="score">0</div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-label">{{ text.high_score }}</div>
+                    <div class="info-value" id="highScore">0</div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-label">生命</div>
+                    <div class="info-value" id="lives">3</div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-label">豆子</div>
+                    <div class="info-value" id="dots">0</div>
+                </div>
+                
+                <div class="controls">
+                    <h3>{{ text.game_controls }}</h3>
+                    <p>← → ↑ ↓ 移动</p>
+                    <p>空格 暂停</p>
+                    <button class="btn" onclick="startGame()">开始游戏</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="game-over" id="gameOver">
+        <h2>{{ text.game_over }}</h2>
+        <p>最终得分: <span id="finalScore">0</span></p>
+        <button class="btn" onclick="restartGame()">{{ text.restart_game }}</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const CELL_SIZE = 20;
+        const COLS = 20;
+        const ROWS = 20;
+        
+        let gameRunning = false;
+        let gamePaused = false;
+        let score = 0;
+        let highScore = localStorage.getItem('pacmanHighScore') || 0;
+        let lives = 3;
+        let dots = 0;
+        let totalDots = 0;
+        
+        // 游戏状态
+        let pacman = { x: 1, y: 1, direction: 'right', nextDirection: 'right' };
+        let ghosts = [];
+        let maze = [];
+        let dotsArray = [];
+        
+        // 迷宫布局 (1 = 墙, 0 = 空地, 2 = 豆子)
+        const MAZE_LAYOUT = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1],
+            [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,2,1,2,1,1,1,1,1,1,2,1,2,1,1,2,1],
+            [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
+            [1,1,1,1,2,1,1,1,0,1,1,0,1,1,1,2,1,1,1,1],
+            [0,0,0,1,2,1,0,0,0,0,0,0,0,0,1,2,1,0,0,0],
+            [1,1,1,1,2,1,0,1,1,0,0,1,1,0,1,2,1,1,1,1],
+            [0,0,0,0,2,0,0,1,0,0,0,0,1,0,0,2,0,0,0,0],
+            [1,1,1,1,2,1,0,1,1,1,1,1,1,0,1,2,1,1,1,1],
+            [0,0,0,1,2,1,0,0,0,0,0,0,0,0,1,2,1,0,0,0],
+            [1,1,1,1,2,1,0,1,1,1,1,1,1,0,1,2,1,1,1,1],
+            [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1],
+            [1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1],
+            [1,1,2,1,2,1,2,1,1,1,1,1,1,2,1,2,1,2,1,1],
+            [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
+            [1,2,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,2,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            maze = MAZE_LAYOUT.map(row => [...row]);
+            dotsArray = [];
+            totalDots = 0;
+            
+            // 计算豆子总数
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (maze[y][x] === 2) {
+                        dotsArray.push({ x, y });
+                        totalDots++;
+                    }
+                }
+            }
+            
+            // 初始化幽灵
+            ghosts = [
+                { x: 9, y: 9, direction: 'up', color: '#ff0000' },
+                { x: 10, y: 9, direction: 'down', color: '#00ff00' },
+                { x: 9, y: 10, direction: 'left', color: '#0000ff' },
+                { x: 10, y: 10, direction: 'right', color: '#ffff00' }
+            ];
+            
+            pacman = { x: 1, y: 1, direction: 'right', nextDirection: 'right' };
+            dots = totalDots;
+            lives = 3;
+            score = 0;
+        }
+        
+        // 绘制迷宫
+        function drawMaze() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cellX = x * CELL_SIZE;
+                    const cellY = y * CELL_SIZE;
+                    
+                    if (maze[y][x] === 1) {
+                        // 墙
+                        ctx.fillStyle = '#0000ff';
+                        ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+                    } else if (maze[y][x] === 2) {
+                        // 豆子
+                        ctx.fillStyle = '#ffff00';
+                        ctx.beginPath();
+                        ctx.arc(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+        
+        // 绘制吃豆人
+        function drawPacman() {
+            const x = pacman.x * CELL_SIZE + CELL_SIZE/2;
+            const y = pacman.y * CELL_SIZE + CELL_SIZE/2;
+            const radius = CELL_SIZE/2 - 2;
+            
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            
+            const angle = {
+                'right': 0,
+                'down': Math.PI/2,
+                'left': Math.PI,
+                'up': -Math.PI/2
+            }[pacman.direction];
+            
+            ctx.arc(x, y, radius, angle + 0.2, angle - 0.2);
+            ctx.lineTo(x, y);
+            ctx.fill();
+        }
+        
+        // 绘制幽灵
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                const x = ghost.x * CELL_SIZE;
+                const y = ghost.y * CELL_SIZE;
+                
+                ctx.fillStyle = ghost.color;
+                ctx.beginPath();
+                ctx.arc(x + CELL_SIZE/2, y + CELL_SIZE/2, CELL_SIZE/2 - 2, Math.PI, 0);
+                ctx.rect(x + 2, y + CELL_SIZE/2, CELL_SIZE - 4, CELL_SIZE/2 - 2);
+                ctx.fill();
+            });
+        }
+        
+        // 移动吃豆人
+        function movePacman() {
+            const directions = {
+                'up': { x: 0, y: -1 },
+                'down': { x: 0, y: 1 },
+                'left': { x: -1, y: 0 },
+                'right': { x: 1, y: 0 }
+            };
+            
+            // 尝试移动到下一个方向
+            if (pacman.nextDirection !== pacman.direction) {
+                const nextDir = directions[pacman.nextDirection];
+                const newX = pacman.x + nextDir.x;
+                const newY = pacman.y + nextDir.y;
+                
+                if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS && maze[newY][newX] !== 1) {
+                    pacman.direction = pacman.nextDirection;
+                }
+            }
+            
+            // 移动
+            const dir = directions[pacman.direction];
+            const newX = pacman.x + dir.x;
+            const newY = pacman.y + dir.y;
+            
+            // 边界检查
+            if (newX < 0 || newX >= COLS || newY < 0 || newY >= ROWS || maze[newY][newX] === 1) {
+                return;
+            }
+            
+            pacman.x = newX;
+            pacman.y = newY;
+            
+            // 吃豆子
+            if (maze[pacman.y][pacman.x] === 2) {
+                maze[pacman.y][pacman.x] = 0;
+                score += 10;
+                dots--;
+                updateDisplay();
+                
+                if (dots === 0) {
+                    // 游戏胜利
+                    gameWin();
+                }
+            }
+        }
+        
+        // 移动幽灵
+        function moveGhosts() {
+            ghosts.forEach(ghost => {
+                const directions = ['up', 'down', 'left', 'right'];
+                const validDirections = [];
+                
+                directions.forEach(dir => {
+                    const dirMap = {
+                        'up': { x: 0, y: -1 },
+                        'down': { x: 0, y: 1 },
+                        'left': { x: -1, y: 0 },
+                        'right': { x: 1, y: 0 }
+                    };
+                    
+                    const newX = ghost.x + dirMap[dir].x;
+                    const newY = ghost.y + dirMap[dir].y;
+                    
+                    if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS && maze[newY][newX] !== 1) {
+                        validDirections.push(dir);
+                    }
+                });
+                
+                if (validDirections.length > 0) {
+                    const randomDir = validDirections[Math.floor(Math.random() * validDirections.length)];
+                    const dirMap = {
+                        'up': { x: 0, y: -1 },
+                        'down': { x: 0, y: 1 },
+                        'left': { x: -1, y: 0 },
+                        'right': { x: 1, y: 0 }
+                    };
+                    
+                    ghost.x += dirMap[randomDir].x;
+                    ghost.y += dirMap[randomDir].y;
+                    ghost.direction = randomDir;
+                }
+            });
+        }
+        
+        // 检查碰撞
+        function checkCollisions() {
+            ghosts.forEach(ghost => {
+                if (ghost.x === pacman.x && ghost.y === pacman.y) {
+                    lives--;
+                    updateDisplay();
+                    
+                    if (lives <= 0) {
+                        gameOver();
+                    } else {
+                        // 重置位置
+                        pacman.x = 1;
+                        pacman.y = 1;
+                        pacman.direction = 'right';
+                        pacman.nextDirection = 'right';
+                    }
+                }
+            });
+        }
+        
+        // 绘制游戏
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawMaze();
+            drawPacman();
+            drawGhosts();
+        }
+        
+        // 游戏循环
+        let lastMoveTime = 0;
+        const moveInterval = 150; // 移动间隔，毫秒
+        
+        function gameLoop() {
+            if (!gameRunning || gamePaused) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            const currentTime = Date.now();
+            if (currentTime - lastMoveTime >= moveInterval) {
+                movePacman();
+                moveGhosts();
+                checkCollisions();
+                lastMoveTime = currentTime;
+            }
+            
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 开始游戏
+        function startGame() {
+            if (gameRunning) return;
+            
+            initGame();
+            gameRunning = true;
+            gamePaused = false;
+            updateDisplay();
+            gameLoop();
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            startGame();
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            gameRunning = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('pacmanHighScore', highScore);
+                updateDisplay();
+            }
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        // 游戏胜利
+        function gameWin() {
+            gameRunning = false;
+            score += 1000; // 胜利奖励
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('pacmanHighScore', highScore);
+                updateDisplay();
+            }
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('highScore').textContent = highScore;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('dots').textContent = dots;
+        }
+        
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                gamePaused = !gamePaused;
+                return;
+            }
+            
+            if (gamePaused) return;
+            
+            switch (e.code) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    pacman.nextDirection = 'up';
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    pacman.nextDirection = 'down';
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    pacman.nextDirection = 'left';
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    pacman.nextDirection = 'right';
+                    break;
+            }
+        });
+        
+        // 初始化显示
+        updateDisplay();
+        initGame();
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.join }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 800px;
+            margin: 6rem auto 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .join-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .join-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        p {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .contact-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .contact-info h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .contact-link {
+            color: var(--accent);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .contact-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            margin-top: 2rem;
+            transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .footer.show {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent);
+        }
+
+        .footer-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 60;
+        }
+
+        .footer-toggle:hover {
+            background: var(--bg-glass-hover);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .join-card {
+                padding: 2rem;
+            }
+            
+            .contact-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-left, .nav-right {
+                margin: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="joinThemeToggle">
+                <span id="joinThemeText">深色</span>
+            </button>
+            <a href="/" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="join-card">
+            <h1>{{ text.join }}</h1>
+            <p>欢迎加入我们的技术社区！我们正在寻找志同道合的开发者一起分享技术、交流经验。</p>
+            <p>如果你对Python、C++、系统开发或任何技术话题感兴趣，欢迎联系我们！</p>
+            
+            <div class="contact-info">
+                <h3>{{ text.contact }}</h3>
+                <div class="contact-links">
+                    <a href="tel:13397004066" class="contact-link">{{ text.phone_label }}: 13397004066</a>
+                    <a href="mailto:cao123_2024@qq.com" class="contact-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+                </div>
+            </div>
+            
+            <a href="/" class="back-link">{{ text.back_home }}</a>
+        </div>
+    </main>
+
+    <footer class="footer" id="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="tel:13397004066" class="footer-link">{{ text.phone_label }}: 13397004066</a>
+                <a href="mailto:cao123_2024@qq.com" class="footer-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+            </div>
+            <div>&copy; {{ year }} {{ text.footer }}</div>
+        </div>
+    </footer>
+
+    <div class="footer-toggle" id="footerToggle">↑</div>
+
+    <script>
+        // Footer toggle functionality
+        const footer = document.getElementById('footer');
+        const footerToggle = document.getElementById('footerToggle');
+        let footerVisible = false;
+
+        function updateFooterVisibility() {
+            const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+            if (scrollBottom) {
+                footer.classList.add('show');
+                footerVisible = true;
+            } else {
+                footer.classList.remove('show');
+                footerVisible = false;
+            }
+        }
+
+        window.addEventListener('scroll', updateFooterVisibility);
+        window.addEventListener('resize', updateFooterVisibility);
+        updateFooterVisibility();
+
+        footerToggle.addEventListener('click', function() {
+            if (footerVisible) {
+                footer.classList.remove('show');
+                footerVisible = false;
+                this.textContent = '↑';
+            } else {
+                footer.classList.add('show');
+                footerVisible = true;
+                this.textContent = '↓';
+            }
+        });
+    </script>
+    <script src="/static/theme.js"></script>
+</body>
+</html>
+

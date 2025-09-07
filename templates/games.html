@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.games }}</title>
+    <style>
+        body { margin:0; min-height:100vh; background: linear-gradient(135deg, #0d1117 0%, #111827 100%); color:#e5e7eb; font-family:'Segoe UI','PingFang SC','Hiragino Sans GB',Arial,sans-serif; }
+        .navbar { width:100%; position:fixed; top:0; left:0; height:3.6rem; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.06); backdrop-filter:blur(10px); border-bottom:1px solid rgba(148,163,184,0.18); padding:0 1.5rem; z-index:10; }
+        .nav-left a { color:#e5e7eb; text-decoration:none; margin-right:0.8rem; border-left:3px solid rgba(96,165,250,0.6); padding:0.3rem 0.8rem; border-radius:8px; }
+        .nav-left a:hover { background: rgba(255,255,255,0.06); border-left-color:#60a5fa; }
+        .nav-right { display:flex; align-items:center; gap:1rem; }
+        .theme-toggle-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(148,163,184,0.18); border-radius:8px; color:#e5e7eb; padding:0.5rem 1rem; cursor:pointer; transition:all 0.3s ease; }
+        .theme-toggle-btn:hover { background:rgba(255,255,255,0.1); transform:translateY(-2px); }
+        .container { max-width:1100px; margin:5rem auto 2rem auto; padding:0 1rem; }
+        h1 { margin:1rem 0 1rem 0; font-size:1.6rem; color:#e5e7eb; }
+        .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:1rem; }
+        .card { background: rgba(255,255,255,0.06); border:1px solid rgba(148,163,184,0.18); border-radius:12px; padding:1rem; text-decoration:none; color:#e5e7eb; backdrop-filter: blur(10px); transition: transform .15s ease, border-color .15s ease; min-height:120px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        .card:hover { transform: translateY(-2px); border-color:#60a5fa; }
+        .card-title { font-weight:700; margin-bottom:0.4rem; }
+        .card-desc { color:#9aa4b2; font-size:0.92rem; text-align:center; }
+        @media (max-width: 900px){ .grid { grid-template-columns:repeat(2, 1fr);} }
+        @media (max-width: 520px){ .grid { grid-template-columns:repeat(1, 1fr);} }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/">{{ text.home }}</a>
+            <a href="/games">{{ text.games }}</a>
+            <a href="/about">{{ text.about }}</a>
+            <a href="/downloads">{{ text.downloads if text.downloads else 'Downloads' }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="gamesThemeToggle">
+                <span id="gamesThemeText">深色</span>
+            </button>
+            <a href="/" style="color:#9aa4b2;text-decoration:none;">{{ text.back_home }}</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>{{ text.games }}</h1>
+        <div class="grid">
+            <a class="card" href="/game/tank">
+                <div class="card-title">{{ text.tank_game }}</div>
+                <div class="card-desc">{{ text.game_description_tank }}</div>
+            </a>
+            <a class="card" href="/game/snake">
+                <div class="card-title">{{ text.snake_game }}</div>
+                <div class="card-desc">{{ text.game_description_snake }}</div>
+            </a>
+            <a class="card" href="/game/tetris">
+                <div class="card-title">{{ text.tetris_game }}</div>
+                <div class="card-desc">{{ text.game_description_tetris }}</div>
+            </a>
+            <a class="card" href="/game/pacman">
+                <div class="card-title">{{ text.pacman_game }}</div>
+                <div class="card-desc">{{ text.game_description_pacman }}</div>
+            </a>
+            <a class="card" href="/game/breakout">
+                <div class="card-title">{{ text.breakout_game }}</div>
+                <div class="card-desc">{{ text.game_description_breakout }}</div>
+            </a>
+            <a class="card" href="/game/memory">
+                <div class="card-title">{{ text.memory_game }}</div>
+                <div class="card-desc">{{ text.game_description_memory }}</div>
+            </a>
+            <a class="card" href="/game/2048">
+                <div class="card-title">2048</div>
+                <div class="card-desc">{{ text.game_description_2048 }}</div>
+            </a>
+            <a class="card" href="/game/sudoku">
+                <div class="card-title">{{ text.sudoku_game }}</div>
+                <div class="card-desc">{{ text.game_description_sudoku }}</div>
+            </a>
+            <a class="card" href="/game/minesweeper">
+                <div class="card-title">{{ text.minesweeper_game }}</div>
+                <div class="card-desc">{{ text.game_description_minesweeper }}</div>
+            </a>
+            <a class="card" href="/game/asteroids">
+                <div class="card-title">{{ text.asteroids_game }}</div>
+                <div class="card-desc">{{ text.game_description_asteroids }}</div>
+            </a>
+            <a class="card" href="/game/pong">
+                <div class="card-title">{{ text.pong_game }}</div>
+                <div class="card-desc">{{ text.game_description_pong }}</div>
+            </a>
+            <a class="card" href="/game/flappy">
+                <div class="card-title">{{ text.flappy_game }}</div>
+                <div class="card-desc">{{ text.game_description_flappy }}</div>
+            </a>
+            <div class="card" style="cursor: default; opacity: 0.6;">
+                <div class="card-title">更多游戏</div>
+                <div class="card-desc">敬请期待...</div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/theme.js"></script>
+</body>
+</html>
+

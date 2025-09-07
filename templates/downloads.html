@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.downloads }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+        }
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 6rem auto 0 auto;
+            padding: 2rem;
+            width: calc(100% - 800px);
+            min-width: 400px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .admin-bar {
+            text-align: right;
+            margin-bottom: 2rem;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .downloads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .download-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .download-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+        }
+
+        .download-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .download-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .download-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-hover);
+        }
+
+        .no-downloads {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-top: 3rem;
+        }
+
+        .footer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .footer.show {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent);
+        }
+
+        .footer-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 60;
+        }
+
+        .footer-toggle:hover {
+            background: var(--bg-glass-hover);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .downloads-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-left, .nav-right {
+                margin: 0 1rem;
+            }
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="downloadsThemeToggle">
+                <span id="downloadsThemeText">深色</span>
+            </button>
+            <a href="/" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">{{ text.downloads }}</h1>
+        </div>
+
+        {% if user == 'admin' %}
+        <div class="admin-bar">
+            <a href="/admin/new_download" class="btn-primary">{{ text.new_download }}</a>
+        </div>
+        {% endif %}
+
+        {% if downloads %}
+        <div class="downloads-grid">
+            {% for d in downloads %}
+            <div class="download-card" onclick="window.open('{{ d.url }}', '_blank')">
+                <div class="download-name">{{ d.name }}</div>
+                <div class="download-link">{{ text.download_url }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-downloads">
+            {{ text.no_downloads }}
+        </div>
+        {% endif %}
+    </main>
+
+    <footer class="footer" id="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="tel:13397004066" class="footer-link">{{ text.phone_label }}: 13397004066</a>
+                <a href="mailto:cao123_2024@qq.com" class="footer-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+            </div>
+            <div>&copy; {{ year }} {{ text.footer }}</div>
+        </div>
+    </footer>
+
+    <div class="footer-toggle" id="footerToggle">↑</div>
+
+    <script>
+        // Footer toggle functionality
+        const footer = document.getElementById('footer');
+        const footerToggle = document.getElementById('footerToggle');
+        let footerVisible = false;
+
+        function updateFooterVisibility() {
+            const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+            if (scrollBottom) {
+                footer.classList.add('show');
+                footerVisible = true;
+            } else {
+                footer.classList.remove('show');
+                footerVisible = false;
+            }
+        }
+
+        window.addEventListener('scroll', updateFooterVisibility);
+        window.addEventListener('resize', updateFooterVisibility);
+        updateFooterVisibility();
+
+        footerToggle.addEventListener('click', function() {
+            if (footerVisible) {
+                footer.classList.remove('show');
+                footerVisible = false;
+                this.textContent = '↑';
+            } else {
+                footer.classList.add('show');
+                footerVisible = true;
+                this.textContent = '↓';
+            }
+        });
+    </script>
+    <script src="/static/theme.js"></script>
+</body>
+</html>
+
+
