@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.downloads }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+        }
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 6rem auto 0 auto;
+            padding: 2rem;
+            width: calc(100% - 800px);
+            min-width: 400px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .admin-bar {
+            text-align: right;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .admin-bar .btn-secondary {
+            background: rgba(107, 114, 128, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(107, 114, 128, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .admin-bar .btn-secondary:hover {
+            background: rgba(107, 114, 128, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .downloads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .download-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .download-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+        }
+
+        .download-card {
+            position: relative;
+        }
+
+        .admin-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .download-checkbox {
+            margin-right: 10px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .edit-btn {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .edit-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .batch-actions {
+            margin-top: 2rem;
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-glass);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .batch-actions .btn-secondary {
+            background: rgba(107, 114, 128, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(107, 114, 128, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .batch-actions .btn-secondary:hover {
+            background: rgba(107, 114, 128, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .download-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .download-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .download-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-hover);
+        }
+
+        .no-downloads {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-top: 3rem;
+        }
+
+        .footer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .footer.show {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent);
+        }
+
+        .footer-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 60;
+        }
+
+        .footer-toggle:hover {
+            background: var(--bg-glass-hover);
+            transform: scale(1.1);
+        }
+
+        /* 评论区样式 */
+        .comments-section {
+            margin-top: 1rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .comments-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .toggle-comments-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-comments-btn:hover {
+            background: var(--bg-glass-hover);
+        }
+
+        .comments-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .comments-list {
+            margin-bottom: 1rem;
+        }
+
+        .comment-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-user {
+            color: var(--accent);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .comment-time {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .comment-content {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .comment-input-section {
+            margin-top: 1rem;
+        }
+
+        .comment-input-container {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .comment-send-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .comment-send-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .comment-send-btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .comment-cooldown {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .comment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .edit-comment-btn, .delete-comment-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .edit-comment-btn {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .edit-comment-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .delete-comment-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-comment-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .downloads-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-left, .nav-right {
+                margin: 0 1rem;
+            }
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about_website }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="downloadsThemeToggle">
+                <span id="downloadsThemeText">深色</span>
+            </button>
+            <a href="/" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">{{ text.downloads }}</h1>
+        </div>
+
+        {% if user == 'admin' %}
+        <div class="admin-bar">
+            <a href="/admin/new_download" class="btn-primary">{{ text.new_download }}</a>
+            <button onclick="toggleBatchMode()" class="btn-secondary" id="batchModeBtn">{{ text.batch_delete }}</button>
+        </div>
+        {% endif %}
+
+        {% if downloads %}
+        <div class="downloads-grid">
+            {% for d in downloads %}
+            <div class="download-card" id="download-{{ loop.index0 }}">
+                {% if user == 'admin' %}
+                <div class="admin-controls" style="display: none;">
+                    <input type="checkbox" class="download-checkbox" value="{{ loop.index0 }}">
+                    <button onclick="editDownload('{{ loop.index0 }}', this.dataset.name, this.dataset.url)" class="edit-btn" data-name="{{ d.name }}" data-url="{{ d.url }}">编辑</button>
+                    <button onclick="deleteDownload('{{ loop.index0 }}')" class="delete-btn">删除</button>
+                </div>
+                {% endif %}
+                <div class="download-content" onclick="window.open('{{ d.url }}', '_blank')">
+                    <div class="download-name">{{ d.name }}</div>
+                    <div class="download-link">{{ text.download_url }}</div>
+                </div>
+                
+                <!-- 评论区 -->
+                <div class="comments-section" onclick="event.stopPropagation()">
+                    <div class="comments-header">
+                        <span class="comments-title">评论 ({{ downloads_with_comments[loop.index0].comments|length }})</span>
+                        <button class="toggle-comments-btn" onclick="toggleComments('{{ loop.index0 }}')">展开</button>
+                    </div>
+                    
+                    <div class="comments-container" id="comments-{{ loop.index0 }}" style="display: none;">
+                        <div class="comments-list">
+                            {% for comment in downloads_with_comments[loop.index0].comments %}
+                            <div class="comment-item">
+                                <div class="comment-header">
+                                    <span class="comment-user">{{ comment.user }}</span>
+                                    <span class="comment-time">{{ comment.timestamp|int|timestamp_to_date }}</span>
+                                    {% if user == 'admin' %}
+                                    <div class="comment-actions">
+                                        <button class="edit-comment-btn" onclick="editComment({{ comment.id }}, '{{ comment.content|replace("'", "\\'") }}')">编辑</button>
+                                        <button class="delete-comment-btn" onclick="deleteComment({{ comment.id }})">删除</button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="comment-content">{{ comment.content }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if user != '游客' %}
+                        <div class="comment-input-section">
+                            <div class="comment-input-container">
+                                <input type="text" class="comment-input" id="comment-input-{{ loop.index0 }}" placeholder="发表评论..." maxlength="500">
+                                <button class="comment-send-btn" onclick="sendComment('download', '{{ loop.index0 }}')">发送</button>
+                            </div>
+                            <div class="comment-cooldown" id="cooldown-{{ loop.index0 }}" style="display: none;"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if user == 'admin' %}
+        <div class="batch-actions" id="batchActions" style="display: none;">
+            <button onclick="selectAllDownloads()" class="btn-secondary">全选</button>
+            <button onclick="batchDeleteDownloads()" class="btn-danger">批量删除</button>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="no-downloads">
+            {{ text.no_downloads }}
+        </div>
+        {% endif %}
+    </main>
+
+    <footer class="footer" id="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="tel:13397004066" class="footer-link">{{ text.phone_label }}: 13397004066</a>
+                <a href="mailto:cao123_2024@qq.com" class="footer-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+            </div>
+            <div>&copy; {{ year }} {{ text.footer }}</div>
+        </div>
+    </footer>
+
+    <div class="footer-toggle" id="footerToggle">↑</div>
+
+    <script>
+        // Footer toggle functionality
+        const footer = document.getElementById('footer');
+        const footerToggle = document.getElementById('footerToggle');
+        let footerVisible = false;
+
+        function updateFooterVisibility() {
+            const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+            if (scrollBottom) {
+                footer.classList.add('show');
+                footerVisible = true;
+            } else {
+                footer.classList.remove('show');
+                footerVisible = false;
+            }
+        }
+
+        window.addEventListener('scroll', updateFooterVisibility);
+        window.addEventListener('resize', updateFooterVisibility);
+        updateFooterVisibility();
+
+        footerToggle.addEventListener('click', function() {
+            if (footerVisible) {
+                footer.classList.remove('show');
+                footerVisible = false;
+                this.textContent = '↑';
+            } else {
+                footer.classList.add('show');
+                footerVisible = true;
+                this.textContent = '↓';
+            }
+        });
+
+        // Download management functionality
+        let batchMode = false;
+
+        function toggleBatchMode() {
+            batchMode = !batchMode;
+            const adminControls = document.querySelectorAll('.admin-controls');
+            const batchActions = document.getElementById('batchActions');
+            const batchBtn = document.getElementById('batchModeBtn');
+            
+            if (batchMode) {
+                adminControls.forEach(control => control.style.display = 'flex');
+                batchActions.style.display = 'block';
+                batchBtn.textContent = '退出批量模式';
+            } else {
+                adminControls.forEach(control => control.style.display = 'none');
+                batchActions.style.display = 'none';
+                batchBtn.textContent = '批量删除';
+                // 取消所有选择
+                document.querySelectorAll('.download-checkbox').forEach(cb => cb.checked = false);
+            }
+        }
+
+        function editDownload(index, name, url) {
+            index = parseInt(index);
+            // 创建编辑模态框
+            const modal = document.createElement('div');
+            modal.className = 'edit-modal';
+            modal.innerHTML = `
+                <div class="edit-modal-content">
+                    <div class="edit-modal-header">
+                        <h3>编辑下载项</h3>
+                        <button class="close-btn" onclick="closeEditModal()">&times;</button>
+                    </div>
+                    <div class="edit-modal-body">
+                        <div class="form-group">
+                            <label for="editName">软件名称:</label>
+                            <input type="text" id="editName" value="${name}" placeholder="请输入软件名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="editUrl">下载链接:</label>
+                            <input type="url" id="editUrl" value="${url}" placeholder="请输入下载链接">
+                        </div>
+                    </div>
+                    <div class="edit-modal-footer">
+                        <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                        <button class="btn btn-primary" onclick="saveEditDownload(${index})">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            // 添加模态框样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .edit-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    backdrop-filter: blur(10px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+                .edit-modal-content {
+                    background: var(--bg-glass);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid var(--border);
+                    border-radius: 16px;
+                    padding: 0;
+                    max-width: 500px;
+                    width: 90%;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                }
+                .edit-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1.5rem;
+                    border-bottom: 1px solid var(--border);
+                }
+                .edit-modal-header h3 {
+                    margin: 0;
+                    color: var(--text-primary);
+                }
+                .close-btn {
+                    background: none;
+                    border: none;
+                    color: var(--text-secondary);
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.3s ease;
+                }
+                .close-btn:hover {
+                    background: var(--bg-glass-hover);
+                    color: var(--text-primary);
+                }
+                .edit-modal-body {
+                    padding: 1.5rem;
+                }
+                .form-group {
+                    margin-bottom: 1.5rem;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    color: var(--text-primary);
+                    font-weight: 500;
+                }
+                .form-group input {
+                    width: 100%;
+                    padding: 0.75rem;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    color: var(--text-primary);
+                    font-size: 1rem;
+                    transition: all 0.3s ease;
+                }
+                .form-group input:focus {
+                    outline: none;
+                    border-color: var(--accent);
+                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+                }
+                .edit-modal-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 1rem;
+                    padding: 1.5rem;
+                    border-top: 1px solid var(--border);
+                }
+
+                .btn {
+                    padding: 0.75rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+
+                .btn-secondary {
+                    background: rgba(107, 114, 128, 0.2);
+                    color: var(--text-primary);
+                    border: 1px solid rgba(107, 114, 128, 0.3);
+                }
+
+                .btn-secondary:hover {
+                    background: rgba(107, 114, 128, 0.3);
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+                    color: white;
+                }
+
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+        }
+
+        function closeEditModal() {
+            const modal = document.querySelector('.edit-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function saveEditDownload(index) {
+            const name = document.getElementById('editName').value.trim();
+            const url = document.getElementById('editUrl').value.trim();
+            
+            if (!name || !url) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            fetch('/admin/edit_download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    index: index,
+                    name: name,
+                    url: url
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeEditModal();
+                    location.reload();
+                } else {
+                    alert('更新失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新失败');
+            });
+        }
+
+        function deleteDownload(index) {
+            index = parseInt(index);
+            if (confirm('确定要删除这个下载项吗？')) {
+                fetch('/admin/delete_download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ index: index })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除失败');
+                });
+            }
+        }
+
+        function selectAllDownloads() {
+            const checkboxes = document.querySelectorAll('.download-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+
+        function batchDeleteDownloads() {
+            const selected = Array.from(document.querySelectorAll('.download-checkbox:checked'))
+                .map(cb => parseInt(cb.value));
+            
+            if (selected.length === 0) {
+                alert('请选择要删除的项目');
+                return;
+            }
+            
+            if (confirm(`确定要删除选中的 ${selected.length} 个下载项吗？`)) {
+                fetch('/admin/batch_delete_downloads', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ indices: selected })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('批量删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('批量删除失败');
+                });
+            }
+        }
+
+        // 评论区功能
+        function toggleComments(index) {
+            const container = document.getElementById(`comments-${index}`);
+            const btn = container.previousElementSibling.querySelector('.toggle-comments-btn');
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                btn.textContent = '收起';
+            } else {
+                container.style.display = 'none';
+                btn.textContent = '展开';
+            }
+        }
+
+        function sendComment(type, targetId) {
+            const input = document.getElementById(`comment-input-${targetId}`);
+            const content = input.value.trim();
+            
+            if (!content) {
+                alert('请输入评论内容');
+                return;
+            }
+            
+            const sendBtn = input.nextElementSibling;
+            const cooldownDiv = document.getElementById(`cooldown-${targetId}`);
+            
+            // 禁用发送按钮
+            sendBtn.disabled = true;
+            sendBtn.textContent = '发送中...';
+            
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: type,
+                    target_id: parseInt(targetId),
+                    content: content
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    // 显示冷却时间
+                    showCooldown(targetId, 3);
+                    // 重新加载页面以显示新评论
+                    location.reload();
+                } else {
+                    alert(data.message);
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '发送';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('发送失败');
+                sendBtn.disabled = false;
+                sendBtn.textContent = '发送';
+            });
+        }
+
+        function showCooldown(targetId, seconds) {
+            const cooldownDiv = document.getElementById(`cooldown-${targetId}`);
+            const sendBtn = document.getElementById(`comment-input-${targetId}`).nextElementSibling;
+            
+            cooldownDiv.style.display = 'block';
+            sendBtn.disabled = true;
+            
+            let remaining = seconds;
+            const timer = setInterval(() => {
+                cooldownDiv.textContent = `请等待 ${remaining} 秒后再发送`;
+                remaining--;
+                
+                if (remaining < 0) {
+                    clearInterval(timer);
+                    cooldownDiv.style.display = 'none';
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '发送';
+                }
+            }, 1000);
+        }
+
+        // 编辑评论
+        function editComment(commentId, currentContent) {
+            const newContent = prompt('编辑评论:', currentContent);
+            if (newContent && newContent !== currentContent) {
+                fetch(`/api/comments/${commentId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content: newContent })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('编辑失败');
+                });
+            }
+        }
+
+        // 删除评论
+        function deleteComment(commentId) {
+            if (confirm('确定要删除这条评论吗？')) {
+                fetch(`/api/comments/${commentId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除失败');
+                });
+            }
+        }
+
+        // 支持回车键发送评论
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.comment-input').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const targetId = this.id.split('-')[2];
+                        sendComment('download', targetId);
+                    }
+                });
+            });
+        });
+    </script>
+    <script src="/static/theme.js"></script>
+</body>
+</html>
+
+

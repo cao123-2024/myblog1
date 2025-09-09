@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.batch_delete_users }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 800px;
+            margin: 6rem auto 0 auto;
+            padding: 2rem;
+        }
+
+        .batch-delete-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .batch-delete-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .user-list {
+            margin: 2rem 0;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .user-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-checkbox {
+            margin-right: 1rem;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .user-name {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .select-all {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .select-all:hover {
+            background: var(--bg-glass-hover);
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #be123c 0%, #9f1239 100%);
+            box-shadow: 0 8px 25px rgba(225, 29, 72, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-glass-hover);
+            color: var(--text-primary);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .footer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .footer.show {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent);
+        }
+
+        .footer-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 60;
+        }
+
+        .footer-toggle:hover {
+            background: var(--bg-glass-hover);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .batch-delete-card {
+                padding: 2rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .nav-left, .nav-right {
+                margin: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <a href="/" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="batch-delete-card">
+            <h1>{{ text.batch_delete_users }}</h1>
+            
+            <div class="user-list">
+                <div class="select-all" onclick="toggleSelectAll()">
+                    <input type="checkbox" id="selectAll" class="user-checkbox">
+                    <label for="selectAll" style="margin-left: 0.5rem; cursor: pointer;">全选/取消全选</label>
+                </div>
+                
+                {% for username in users_list %}
+                <div class="user-item">
+                    <input type="checkbox" class="user-checkbox" value="{{ username }}" id="user_{{ loop.index }}">
+                    <label for="user_{{ loop.index }}" class="user-name">{{ username }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="form-actions">
+                <button class="btn btn-danger" onclick="batchDeleteUsers()">批量删除选中用户</button>
+                <a href="/" class="btn btn-secondary">{{ text.back_home }}</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer" id="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="tel:13397004066" class="footer-link">{{ text.phone_label }}: 13397004066</a>
+                <a href="mailto:cao123_2024@qq.com" class="footer-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+            </div>
+            <div>&copy; {{ year }} {{ text.footer }}</div>
+        </div>
+    </footer>
+
+    <div class="footer-toggle" id="footerToggle">↑</div>
+
+    <script>
+        // Footer toggle functionality
+        const footer = document.getElementById('footer');
+        const footerToggle = document.getElementById('footerToggle');
+        let footerVisible = false;
+
+        function updateFooterVisibility() {
+            const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+            if (scrollBottom) {
+                footer.classList.add('show');
+                footerVisible = true;
+            } else {
+                footer.classList.remove('show');
+                footerVisible = false;
+            }
+        }
+
+        window.addEventListener('scroll', updateFooterVisibility);
+        window.addEventListener('resize', updateFooterVisibility);
+        updateFooterVisibility();
+
+        footerToggle.addEventListener('click', function() {
+            if (footerVisible) {
+                footer.classList.remove('show');
+                footerVisible = false;
+                this.textContent = '↑';
+            } else {
+                footer.classList.add('show');
+                footerVisible = true;
+                this.textContent = '↓';
+            }
+        });
+
+        // Batch delete functionality
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const userCheckboxes = document.querySelectorAll('.user-checkbox:not(#selectAll)');
+            
+            userCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        function batchDeleteUsers() {
+            const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:not(#selectAll):checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedUsers.length === 0) {
+                alert('请选择要删除的用户');
+                return;
+            }
+            
+            if (confirm(`确定要删除选中的 ${selectedUsers.length} 个用户吗？此操作不可恢复！`)) {
+                fetch('/admin/batch-delete-users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        usernames: selectedUsers
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`成功删除 ${data.deleted.length} 个用户`);
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除过程中发生错误');
+                });
+            }
+        }
+    </script>
+</body>
+</html>

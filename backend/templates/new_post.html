@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>新建文章</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        h1 {
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        textarea {
+            height: 300px;
+            resize: vertical;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--accent);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .back-link:hover {
+            color: var(--accent-hover);
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            height: 3rem;
+        }
+
+        .nav-left {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-left: 1.5rem;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-left:hover {
+            color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 0.3rem 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.site_name }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="newPostThemeToggle">
+                <span id="newPostThemeText">深色</span>
+            </button>
+        </div>
+    </nav>
+    <div style="height:3.5rem;"></div>
+    <div class="container">
+        <h1>{{ text.new_post }}</h1>
+        <form method="POST">
+            <label for="title">{{ text.title_label }}:</label>
+            <input type="text" id="title" name="title" required>
+
+            <label for="content">{{ text.content_label }}:</label>
+            <textarea id="content" name="content" required></textarea>
+
+            <button type="submit">{{ text.publish_post }}</button>
+        </form>
+        <a href="{{ url_for('index') }}" class="back-link">{{ text.back_home }}</a>
+    </div>
+
+    <!-- 图片上传区域 -->
+    <div class="image-upload-container" style="margin-top: 2rem; padding: 2rem; border: 2px dashed var(--border); border-radius: 16px; text-align: center; background: var(--bg-glass); backdrop-filter: blur(10px);">
+        <h4 style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1.2rem;">{{ text.upload_images }}</h4>
+        <input type="file" id="imageUpload" accept="image/*" multiple style="display: none;">
+        <label for="imageUpload" style="display: inline-block; padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%); color: white; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">{{ text.choose_images }}</label>
+        <div id="imagePreview" style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;"></div>
+    </div>
+
+    <script>
+        // JavaScript for image preview and handling
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const maxImages = 9;
+        let selectedFiles = []; // Store files to upload
+
+        imageUpload.addEventListener('change', function(event) {
+            const files = event.target.files;
+            // Clear previous previews if not appending
+            // imagePreview.innerHTML = '';
+            // selectedFiles = [];
+
+            for (let i = 0; i < files.length; i++) {
+                if (selectedFiles.length >= maxImages) {
+                    alert(("{{ text.max_images_limit }}").replace('{n}', maxImages));
+                    break; // Stop if max images reached
+                }
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    selectedFiles.push(file); // Add file to the list
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.style.position = 'relative';
+                        imgContainer.style.width = '100px';
+                        imgContainer.style.height = '100px';
+                        imgContainer.style.backgroundImage = `url(${e.target.result})`;
+                        imgContainer.style.backgroundSize = 'cover';
+                        imgContainer.style.backgroundPosition = 'center';
+                        imgContainer.style.borderRadius = '4px';
+
+                        const removeBtn = document.createElement('span');
+                        removeBtn.textContent = '×';
+                        removeBtn.style.position = 'absolute';
+                        removeBtn.style.top = '5px';
+                        removeBtn.style.right = '5px';
+                        removeBtn.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+                        removeBtn.style.color = 'white';
+                        removeBtn.style.borderRadius = '50%';
+                        removeBtn.style.width = '20px';
+                        removeBtn.style.height = '20px';
+                        removeBtn.style.textAlign = 'center';
+                        removeBtn.style.lineHeight = '20px';
+                        removeBtn.style.cursor = 'pointer';
+                        removeBtn.onclick = function() {
+                            // Remove file from selectedFiles array and remove preview
+                            const index = selectedFiles.indexOf(file);
+                            if (index > -1) {
+                                selectedFiles.splice(index, 1);
+                            }
+                            imgContainer.remove();
+                        };
+
+                        imgContainer.appendChild(removeBtn);
+                        imagePreview.appendChild(imgContainer);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('{{ text.only_images_allowed }}');
+                }
+            }
+            // Clear the input so the same file can be selected again
+            event.target.value = '';
+        });
+
+        // Handle form submission - attach files to FormData
+        document.querySelector('form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(this); // Use the form itself
+            // Append selected files to FormData
+            selectedFiles.forEach(file => {
+                formData.append('files[]', file);
+            });
+
+            // Now submit the formData using fetch or XMLHttpRequest
+            // Example using fetch (replace with your actual post submission logic)
+            fetch(this.action, { // Use the form's action URL
+                method: this.method, // Use the form's method
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message); // Or redirect
+                    window.location.href = data.redirect_url; // Assuming backend returns redirect URL
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('发布文章失败。');
+            });
+        });
+
+    </script>
+    <script src="/static/theme.js"></script>
+</body>
+</html> 

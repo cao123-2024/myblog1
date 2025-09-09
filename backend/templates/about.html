@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.about_website }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --bg-glass-hover: rgba(255, 255, 255, 0.8);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .navbar {
+            width: 100%;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+            border-left-color: var(--accent);
+        }
+
+        .nav-right {
+            margin-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+        }
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 1000px;
+            margin: 6rem auto 0 auto;
+            padding: 2rem;
+            width: calc(100% - 4rem);
+            min-width: 400px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .website-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--border);
+            padding: 12px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .website-icon:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+        }
+
+        .info-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+        }
+
+        .info-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .tech-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tech-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .tech-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .disclaimer {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .disclaimer-title {
+            color: #fca5a5;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .disclaimer-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+                width: calc(100% - 2rem);
+            }
+            
+            .nav-left, .nav-right {
+                margin: 0 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="nav-link">{{ text.home }}</a>
+            <a href="/games" class="nav-link">{{ text.games }}</a>
+            <a href="/about" class="nav-link">{{ text.about_website }}</a>
+            <a href="/join" class="nav-link">{{ text.join }}</a>
+            <a href="/downloads" class="nav-link">{{ text.downloads }}</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="aboutThemeToggle">
+                <span id="aboutThemeText">深色</span>
+            </button>
+            <a href="/" class="nav-link">{{ text.back_home }}</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div class="icon-container">
+                <img src="/static/website-icon.svg" alt="网站图标" class="website-icon">
+            </div>
+            <h1 class="page-title">{{ text.about_website }}</h1>
+        </div>
+
+        <div class="info-card">
+            <h2 class="info-title">📊 {{ text.website_info }}</h2>
+            <div class="info-content">
+                <p><strong>{{ text.website_version }}:</strong> V1.0</p>
+                <p><strong>{{ text.runtime }}:</strong> {{ runtime_days }} 天 {{ runtime_hours }} 小时 {{ runtime_minutes }} 分钟</p>
+                <p><strong>{{ text.launch_date }}:</strong> 2024年9月9日</p>
+                <p><strong>{{ text.developer }}:</strong> 我的博客开发团队</p>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h2 class="info-title">🚀 {{ text.features }}</h2>
+            <div class="info-content">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                    <div>
+                        <h3>📝 {{ text.blog_system }}</h3>
+                        <p>{{ text.share_thoughts }}</p>
+                    </div>
+                    <div>
+                        <h3>🎮 {{ text.game_collection }}</h3>
+                        <p>{{ text.classic_games }}</p>
+                    </div>
+                    <div>
+                        <h3>📥 {{ text.download_center }}</h3>
+                        <p>{{ text.software_downloads }}</p>
+                    </div>
+                    <div>
+                        <h3>👤 {{ text.user_system }}</h3>
+                        <p>{{ text.account_management }}</p>
+                    </div>
+                    <div>
+                        <h3>🌍 {{ text.multi_language }}</h3>
+                        <p>{{ text.six_languages }}</p>
+                    </div>
+                    <div>
+                        <h3>📱 {{ text.responsive_design }}</h3>
+                        <p>{{ text.mobile_friendly }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h2 class="info-title">⚙️ {{ text.tech_stack }}</h2>
+            <div class="info-content">
+                <div class="tech-list">
+                    <div class="tech-item">
+                        <h3>{{ text.backend }}</h3>
+                        <p>Python, Flask, SocketIO</p>
+                    </div>
+                    <div class="tech-item">
+                        <h3>{{ text.frontend }}</h3>
+                        <p>HTML5, CSS3, JavaScript</p>
+                    </div>
+                    <div class="tech-item">
+                        <h3>{{ text.styling }}</h3>
+                        <p>Glassmorphism, 响应式设计</p>
+                    </div>
+                    <div class="tech-item">
+                        <h3>{{ text.games }}</h3>
+                        <p>Canvas 2D, WebSocket</p>
+                    </div>
+                    <div class="tech-item">
+                        <h3>{{ text.deployment }}</h3>
+                        <p>Render.com, Gunicorn</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h2 class="info-title">📈 {{ text.statistics }}</h2>
+            <div class="info-content">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ total_users }}</div>
+                        <div class="stat-label">{{ text.total_users }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ total_posts }}</div>
+                        <div class="stat-label">{{ text.total_posts }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ total_games }}</div>
+                        <div class="stat-label">{{ text.total_games }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ total_downloads }}</div>
+                        <div class="stat-label">{{ text.total_downloads }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <h2 class="disclaimer-title">⚠️ {{ text.disclaimer }}</h2>
+            <div class="disclaimer-content">
+                {{ text.disclaimer_content }}
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/theme.js"></script>
+</body>
+</html>

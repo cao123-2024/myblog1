@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ text.site_name }} - {{ text.login_register }}</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .login-box {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .login-box:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        input[type="text"]::placeholder, input[type="password"]::placeholder {
+            color: var(--text-secondary);
+        }
+        .main-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .msg {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .lang-bar {
+            margin-bottom: 1.5rem;
+            text-align: right;
+        }
+
+        .lang-bar select {
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .lang-bar select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .back-link, .guest-btn {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-family: inherit;
+            display: inline-block;
+        }
+
+        .back-link:hover, .guest-btn:hover {
+            color: var(--accent);
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .footer.show {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent);
+        }
+
+        .footer-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 60;
+        }
+
+        .footer-toggle:hover {
+            background: var(--bg-glass-hover);
+            transform: scale(1.1);
+        }
+
+        .theme-toggle-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+    </style>
+    <script>
+        function guestLogin() {
+            document.getElementById('username').value = '游客';
+            document.getElementById('phone').value = '';
+            document.getElementById('loginForm').submit();
+        }
+        function togglePasswordInput() {
+            var username = document.getElementById('username').value;
+            var pwdDiv = document.getElementById('pwdDiv');
+            if(username === '游客') {
+                pwdDiv.style.display = 'none';
+            } else {
+                pwdDiv.style.display = '';
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="login-box">
+        <div class="lang-bar">
+            <form method="get" action="" id="langForm">
+                <select name="lang" onchange="window.location.href='/setlang/' + this.value;">
+                    {% for code, name in languages.items() %}
+                        <option value="{{ code }}" {% if lang == code %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="loginThemeToggle">
+            <span id="loginThemeText">深色</span>
+        </button>
+        <h1 id="pageTitle">登录</h1>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="msg">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+        {% if need2fa %}
+        <form method="post" id="loginForm">
+            <input type="text" id="twofa" name="twofa" placeholder="{{ text.twofa_code if text.twofa_code else '验证码' }}" required><br>
+            <button type="submit" class="main-btn">确认登录</button>
+        </form>
+        {% else %}
+        <form method="post" id="loginForm">
+            <input type="text" id="username" name="username" placeholder="{{ text.username }}" required oninput="togglePasswordInput()"><br>
+            <div id="pwdDiv">
+                <input type="password" id="phone" name="phone" placeholder="{{ text.phone }}"><br>
+            </div>
+            <button type="submit" class="main-btn" id="submitBtn">登录</button>
+        </form>
+        <a class="back-link" href="/register" id="registerLink">还没有账号？点击注册</a>
+        <button class="guest-btn" onclick="guestLogin()">使用游客身份登录</button>
+        {% endif %}
+    </div>
+    <footer class="footer" id="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="tel:13397004066" class="footer-link">{{ text.phone_label }}: 13397004066</a>
+                <a href="mailto:cao123_2024@qq.com" class="footer-link">{{ text.email_label }}: cao123_2024@qq.com</a>
+            </div>
+            <div>&copy; {{ year }} {{ text.footer }}</div>
+        </div>
+    </footer>
+
+    <div class="footer-toggle" id="footerToggle">↑</div>
+
+    <script>
+        // Footer toggle functionality
+        const footer = document.getElementById('footer');
+        const footerToggle = document.getElementById('footerToggle');
+        let footerVisible = false;
+
+        function updateFooterVisibility() {
+            const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 10;
+            if (scrollBottom) {
+                footer.classList.add('show');
+                footerVisible = true;
+            } else {
+                footer.classList.remove('show');
+                footerVisible = false;
+            }
+        }
+
+        window.addEventListener('scroll', updateFooterVisibility);
+        window.addEventListener('resize', updateFooterVisibility);
+        updateFooterVisibility();
+
+        footerToggle.addEventListener('click', function() {
+            if (footerVisible) {
+                footer.classList.remove('show');
+                footerVisible = false;
+                this.textContent = '↑';
+            } else {
+                footer.classList.add('show');
+                footerVisible = true;
+                this.textContent = '↓';
+            }
+        });
+    </script>
+    <script src="/static/theme.js"></script>
+</body>
+</html>

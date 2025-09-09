@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机游戏 - 我的博客</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --bg-glass-hover: rgba(255, 255, 255, 0.8);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            text-decoration: none;
+            margin-left: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            margin-right: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 2rem;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .game-container {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .game-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .matching-container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .matching-status {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .matching-animation {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .player-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 2rem 0;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .player-name {
+            color: var(--text-primary);
+        }
+
+        .player-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .status-ready {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-waiting {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .game-area {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+
+        .back-link:hover {
+            color: var(--accent-hover);
+            background: var(--bg-glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">我的博客</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">首页</a>
+            <a href="/games" class="nav-link">游戏</a>
+            <a href="/downloads" class="nav-link">下载</a>
+            <a href="/about" class="nav-link">关于</a>
+        </div>
+        <button class="theme-toggle-btn" onclick="toggleTheme()">🌙 深色模式</button>
+    </nav>
+
+    <div class="main-content">
+        <a href="/games" class="back-link">← 返回游戏列表</a>
+        
+        <div class="game-container">
+            <h1 class="game-title" id="gameTitle">疯狂坦克 - 联机模式</h1>
+            
+            <div id="matchingArea" class="matching-container">
+                <div class="matching-status" id="matchingStatus">正在匹配玩家...</div>
+                <div class="matching-animation"></div>
+                
+                <div class="player-list" id="playerList">
+                    <div class="player-item">
+                        <span class="player-name" id="currentPlayerName">您</span>
+                        <span class="player-status status-ready" id="currentPlayerStatus">已准备</span>
+                    </div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="btn btn-primary" id="readyBtn" onclick="toggleReady()">准备</button>
+                    <button class="btn btn-danger" id="leaveBtn" onclick="leaveMatching()">离开匹配</button>
+                </div>
+            </div>
+            
+            <div id="gameArea" class="game-area">
+                <!-- 游戏内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题切换
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeToggleText();
+        }
+
+        function updateThemeToggleText() {
+            const themeBtn = document.querySelector('.theme-toggle-btn');
+            const currentTheme = document.body.getAttribute('data-theme');
+            themeBtn.textContent = currentTheme === 'light' ? '🌙 深色模式' : '☀️ 浅色模式';
+        }
+
+        // 初始化主题
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeToggleText();
+        });
+
+        // WebSocket连接
+        const socket = io();
+        let gameRoom = null;
+        let isReady = false;
+        let gameInstance = null;
+
+        // 连接事件
+        socket.on('connect', function() {
+            console.log('已连接到服务器');
+            joinMatching();
+        });
+
+        socket.on('disconnect', function() {
+            console.log('与服务器断开连接');
+            updateMatchingStatus('连接已断开，正在重连...');
+        });
+
+        // 匹配相关事件
+        socket.on('match_found', function(data) {
+            gameRoom = data.room;
+            updateMatchingStatus('匹配成功！正在进入游戏...');
+            setTimeout(() => {
+                startGame();
+            }, 2000);
+        });
+
+        socket.on('player_joined', function(data) {
+            updatePlayerList(data.players);
+        });
+
+        socket.on('player_left', function(data) {
+            updatePlayerList(data.players);
+        });
+
+        socket.on('player_ready', function(data) {
+            updatePlayerList(data.players);
+        });
+
+        socket.on('game_started', function(data) {
+            startGame();
+            // 嵌入游戏界面
+            setTimeout(() => {
+                if (data.game_type === 'tank') {
+                    embedTankGame();
+                }
+            }, 1000);
+        });
+
+        // 加入匹配
+        function joinMatching() {
+            const gameType = 'tank';
+            socket.emit('join_matching', { game_type: gameType });
+            updateMatchingStatus('正在匹配玩家...');
+        }
+
+        // 离开匹配
+        function leaveMatching() {
+            socket.emit('leave_matching');
+            window.location.href = '/games';
+        }
+
+        // 切换准备状态
+        function toggleReady() {
+            if (!gameRoom) {
+                isReady = !isReady;
+                socket.emit('toggle_ready', { ready: isReady });
+                updateReadyButton();
+            }
+        }
+
+        // 更新匹配状态
+        function updateMatchingStatus(status) {
+            document.getElementById('matchingStatus').textContent = status;
+        }
+
+        // 更新玩家列表
+        function updatePlayerList(players) {
+            const playerList = document.getElementById('playerList');
+            const currentUserId = '{{ user_id }}';
+            
+            let html = '';
+            players.forEach(player => {
+                const isCurrentPlayer = player.id === currentUserId;
+                const statusClass = player.ready ? 'status-ready' : 'status-waiting';
+                const statusText = player.ready ? '已准备' : '等待中';
+                const nameText = isCurrentPlayer ? '您' : player.username;
+                
+                html += `
+                    <div class="player-item">
+                        <span class="player-name">${nameText}</span>
+                        <span class="player-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            });
+            
+            playerList.innerHTML = html;
+        }
+
+        // 更新准备按钮
+        function updateReadyButton() {
+            const readyBtn = document.getElementById('readyBtn');
+            readyBtn.textContent = isReady ? '取消准备' : '准备';
+            readyBtn.className = isReady ? 'btn btn-danger' : 'btn btn-primary';
+        }
+
+        // 开始游戏
+        function startGame() {
+            document.getElementById('matchingArea').classList.add('hidden');
+            document.getElementById('gameArea').style.display = 'block';
+            
+            // 这里可以加载具体的游戏内容
+            loadTankGame();
+        }
+
+        // 加载坦克游戏
+        function loadTankGame() {
+            // 嵌入完整的坦克游戏
+            document.getElementById('gameArea').innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <h2>疯狂坦克联机模式</h2>
+                    <div class="game-info" style="margin: 1rem 0; padding: 1rem; background: var(--bg-glass); border-radius: 8px;">
+                        <div id="currentPlayer">玩家 1 的回合</div>
+                        <div class="power-control" style="margin-top: 1rem;">
+                            <label>力量:</label>
+                            <input type="range" id="powerSlider" class="power-slider" min="0" max="100" value="0" style="margin: 0 1rem;">
+                            <span id="powerValue">0%</span>
+                        </div>
+                    </div>
+                    <canvas id="gameCanvas" width="800" height="400" style="border: 2px solid var(--border); border-radius: 12px; background: #1a1a1a; margin: 1rem 0;"></canvas>
+                    <div class="control-buttons">
+                        <button class="btn btn-secondary" onclick="backToMatching()">返回匹配</button>
+                    </div>
+                </div>
+            `;
+            
+            // 初始化游戏逻辑
+            initTankGame();
+        }
+
+        // 初始化坦克游戏
+        function initTankGame() {
+            // 这里可以添加坦克游戏的具体实现
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 简单的游戏示例
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('疯狂坦克联机模式', canvas.width/2, canvas.height/2);
+            ctx.fillText('游戏开发中...', canvas.width/2, canvas.height/2 + 40);
+        }
+
+        // 返回匹配
+        function backToMatching() {
+            document.getElementById('matchingArea').classList.remove('hidden');
+            document.getElementById('gameArea').style.display = 'none';
+            joinMatching();
+        }
+    </script>
+</body>
+</html>
