@@ -1,7 +1,10 @@
 from flask import Flask, render_template, session, redirect, url_for, request, flash, jsonify
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import datetime
 import json
 import os
+import uuid
+import time
 from werkzeug.utils import secure_filename
 import hashlib
 import random
@@ -9,6 +12,15 @@ import string
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# 添加时间戳转换过滤器
+@app.template_filter('timestamp_to_date')
+def timestamp_to_date(timestamp):
+    try:
+        return datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
+    except:
+        return '未知时间'
 
 # Explicitly configure static file serving with absolute paths for reliability
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,9 +30,11 @@ app.static_folder = os.path.join(BASE_DIR, 'static')
 # 用户与下载数据存储（SHA-256 哈希用户名/密码）
 USERS_FILE = os.path.join(BASE_DIR, 'users.json')
 DOWNLOADS_FILE = os.path.join(BASE_DIR, 'downloads.json')
+COMMENTS_FILE = os.path.join(BASE_DIR, 'comments.json')
 
 users_store = {}  # 哈希用户名 -> {password: 哈希, role: 'admin'|'user', display: 原名}
 downloads_store = []  # [{name, url}]
+comments = []  # 存储所有评论 [{id, type, target_id, user, content, timestamp, cooldown_end}]
 
 def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
@@ -93,13 +107,73 @@ def load_downloads():
             downloads_store = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         downloads_store = []
+    return downloads_store
 
-def save_downloads():
+def save_downloads(downloads_data=None):
+    global downloads_store
+    if downloads_data is not None:
+        downloads_store = downloads_data
     try:
         with open(DOWNLOADS_FILE, 'w', encoding='utf-8') as f:
             json.dump(downloads_store, f, indent=2, ensure_ascii=False)
     except IOError as e:
         print(f"Error saving downloads: {e}")
+
+def load_comments():
+    global comments
+    try:
+        with open(COMMENTS_FILE, 'r', encoding='utf-8') as f:
+            comments = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        comments = []
+    return comments
+
+def save_comments():
+    global comments
+    try:
+        with open(COMMENTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(comments, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving comments: {e}")
+
+# 验证码存储
+verification_codes = {}
+
+def verify_phone_code(phone, code):
+    """验证手机验证码"""
+    phone_key = f'phone_{phone}'
+    if phone_key in verification_codes:
+        stored_data = verification_codes[phone_key]
+        if time.time() < stored_data['expires'] and stored_data['code'] == code:
+            return True
+    return False
+
+def verify_email_code(email, code):
+    """验证邮箱验证码"""
+    email_key = f'email_{email}'
+    if email_key in verification_codes:
+        stored_data = verification_codes[email_key]
+        if time.time() < stored_data['expires'] and stored_data['code'] == code:
+            return True
+    return False
+
+def bind_phone_to_user(username, phone):
+    """绑定手机号到用户"""
+    users = load_users()
+    if username in users:
+        if 'bindings' not in users[username]:
+            users[username]['bindings'] = {}
+        users[username]['bindings']['phone'] = phone
+        save_users(users)
+
+def bind_email_to_user(username, email):
+    """绑定邮箱到用户"""
+    users = load_users()
+    if username in users:
+        if 'bindings' not in users[username]:
+            users[username]['bindings'] = {}
+        users[username]['bindings']['email'] = email
+        save_users(users)
 
 # Python小技巧列表
 CODE_TIPS = [
@@ -142,14 +216,14 @@ LANG_TEXT = {
         'skills': '技能：Python、C++、系统开发',
         'latest': '最新文章',
         'about': '关于我',
-        'login': '登录/注册',
+        'login': '登录',
         'logout': '退出',
         'admin': '管理员',
         'footer': '我的博客',
         'back_home': '返回首页',
         'username': '用户名',
         'phone': '手机号/密码',
-        'login_register': '登录/注册',
+        'login_register': '登录',
         'copyright': '我的博客',
         'tip_title': '小技巧',
         'language_switch': '语言切换',
@@ -267,7 +341,76 @@ LANG_TEXT = {
         'game_description_pong': '经典乒乓球游戏，与AI对战',
         'game_description_flappy': '点击控制小鸟飞行，避开障碍',
         'tank_game': '疯狂坦克',
-        'game_description_tank': '经典2D坦克对战游戏，选择玩家数量，控制坦克发射炮弹击败对手'
+        'game_description_tank': '经典2D坦克对战游戏，选择玩家数量，控制坦克发射炮弹击败对手',
+        # 新增的翻译键
+        'online_game': '联机游戏',
+        'online_mode': '联机模式',
+        'local_mode': '本地模式',
+        'connecting': '正在连接...',
+        'connected': '已连接',
+        'disconnected': '连接断开',
+        'please_wait': '请稍候',
+        'connection_status': '连接状态',
+        'matching': '匹配中',
+        'searching_players': '正在寻找玩家...',
+        'cancel_matching': '取消匹配',
+        'left_matching': '已离开匹配队列',
+        'game_room': '游戏房间',
+        'room_id': '房间ID',
+        'players': '玩家',
+        'ready': '准备',
+        'waiting': '等待',
+        'leave_room': '离开房间',
+        'game_info': '游戏信息',
+        'game_started': '游戏开始！',
+        'about_website': '关于网站',
+        'website_info': '网站信息',
+        'version': '版本',
+        'runtime': '运行时间',
+        'launch_date': '上线日期',
+        'developer': '开发者',
+        'features': '主要功能',
+        'blog_system': '博客系统',
+        'share_thoughts': '分享想法和文章',
+        'game_collection': '游戏集合',
+        'classic_games': '经典小游戏合集',
+        'download_center': '下载中心',
+        'software_downloads': '软件下载管理',
+        'user_system': '用户系统',
+        'account_management': '账户管理和绑定',
+        'multi_language': '多语言支持',
+        'six_languages': '支持六种语言',
+        'responsive_design': '响应式设计',
+        'mobile_friendly': '移动端友好',
+        'technology': '技术栈',
+        'backend': '后端',
+        'frontend': '前端',
+        'styling': '样式',
+        'games': '游戏',
+        'deployment': '部署',
+        'total_users': '总用户数',
+        'total_posts': '总文章数',
+        'total_games': '游戏数量',
+        'total_downloads': '下载项目',
+        'calculating': '计算中...',
+        'account_binding': '账户绑定',
+        'email_binding': '邮箱绑定',
+        'phone_binding': '手机号绑定',
+        'enter_email': '请输入邮箱',
+        'enter_phone': '请输入手机号',
+        'enter_code': '请输入验证码',
+        'send_code': '发送验证码',
+        'bind_email': '绑定邮箱',
+        'bind_phone': '绑定手机号',
+        'batch_delete': '批量删除',
+        'website_version': '网站版本',
+        'launch_date': '启动日期',
+        'developer': '开发者',
+        'features': '主要功能',
+        'tech_stack': '技术栈',
+        'statistics': '网站统计',
+        'disclaimer': '免责声明',
+        'disclaimer_content': '本网站仅供学习和娱乐使用。用户在使用本网站时，应当遵守相关法律法规。网站不对用户的行为承担任何责任。'
     },
     'en': {
         'site_name': 'My Blog',
@@ -400,7 +543,76 @@ LANG_TEXT = {
         'game_description_pong': 'Classic Pong game, play against AI',
         'game_description_flappy': 'Click to control bird flight, avoid obstacles',
         'tank_game': 'Crazy Tanks',
-        'game_description_tank': 'Classic 2D tank battle game, choose player count, control tanks to defeat opponents'
+        'game_description_tank': 'Classic 2D tank battle game, choose player count, control tanks to defeat opponents',
+        # New translation keys
+        'online_game': 'Online Game',
+        'online_mode': 'Online Mode',
+        'local_mode': 'Local Mode',
+        'connecting': 'Connecting...',
+        'connected': 'Connected',
+        'disconnected': 'Disconnected',
+        'please_wait': 'Please wait',
+        'connection_status': 'Connection Status',
+        'matching': 'Matching',
+        'searching_players': 'Searching for players...',
+        'cancel_matching': 'Cancel Matching',
+        'left_matching': 'Left matching queue',
+        'game_room': 'Game Room',
+        'room_id': 'Room ID',
+        'players': 'Players',
+        'ready': 'Ready',
+        'waiting': 'Waiting',
+        'leave_room': 'Leave Room',
+        'game_info': 'Game Info',
+        'game_started': 'Game Started!',
+        'about_website': 'About Website',
+        'website_info': 'Website Info',
+        'version': 'Version',
+        'runtime': 'Runtime',
+        'launch_date': 'Launch Date',
+        'developer': 'Developer',
+        'features': 'Main Features',
+        'blog_system': 'Blog System',
+        'share_thoughts': 'Share thoughts and articles',
+        'game_collection': 'Game Collection',
+        'classic_games': 'Classic mini-games collection',
+        'download_center': 'Download Center',
+        'software_downloads': 'Software download management',
+        'user_system': 'User System',
+        'account_management': 'Account management and binding',
+        'multi_language': 'Multi-language Support',
+        'six_languages': 'Support for six languages',
+        'responsive_design': 'Responsive Design',
+        'mobile_friendly': 'Mobile friendly',
+        'technology': 'Technology Stack',
+        'backend': 'Backend',
+        'frontend': 'Frontend',
+        'styling': 'Styling',
+        'games': 'Games',
+        'deployment': 'Deployment',
+        'total_users': 'Total Users',
+        'total_posts': 'Total Posts',
+        'total_games': 'Game Count',
+        'total_downloads': 'Download Items',
+        'calculating': 'Calculating...',
+        'account_binding': 'Account Binding',
+        'email_binding': 'Email Binding',
+        'phone_binding': 'Phone Binding',
+        'enter_email': 'Enter email',
+        'enter_phone': 'Enter phone number',
+        'enter_code': 'Enter verification code',
+        'send_code': 'Send Code',
+        'bind_email': 'Bind Email',
+        'bind_phone': 'Bind Phone',
+        'batch_delete': 'Batch Delete',
+        'website_version': 'Website Version',
+        'launch_date': 'Launch Date',
+        'developer': 'Developer',
+        'features': 'Main Features',
+        'tech_stack': 'Technology Stack',
+        'statistics': 'Website Statistics',
+        'disclaimer': 'Disclaimer',
+        'disclaimer_content': 'This website is for learning and entertainment purposes only. Users should comply with relevant laws and regulations when using this website. The website is not responsible for user behavior.'
     },
     'ja': {
         'site_name': '私のブログ',
@@ -474,7 +686,76 @@ LANG_TEXT = {
         'game_description_pong': 'クラシックなポンゲーム',
         'game_description_flappy': 'クリックで鳥を飛ばし、障害物を避ける',
         'tank_game': 'クレイジータンク',
-        'game_description_tank': 'クラシックな2Dタンクバトルゲーム、プレイヤー数を選択して対戦'
+        'game_description_tank': 'クラシックな2Dタンクバトルゲーム、プレイヤー数を選択して対戦',
+        # 新しい翻訳キー
+        'online_game': 'オンラインゲーム',
+        'online_mode': 'オンラインモード',
+        'local_mode': 'ローカルモード',
+        'connecting': '接続中...',
+        'connected': '接続済み',
+        'disconnected': '切断',
+        'please_wait': 'お待ちください',
+        'connection_status': '接続状態',
+        'matching': 'マッチング中',
+        'searching_players': 'プレイヤーを検索中...',
+        'cancel_matching': 'マッチングをキャンセル',
+        'left_matching': 'マッチングキューを離れました',
+        'game_room': 'ゲームルーム',
+        'room_id': 'ルームID',
+        'players': 'プレイヤー',
+        'ready': '準備完了',
+        'waiting': '待機中',
+        'leave_room': 'ルームを離れる',
+        'game_info': 'ゲーム情報',
+        'game_started': 'ゲーム開始！',
+        'about_website': 'ウェブサイトについて',
+        'website_info': 'ウェブサイト情報',
+        'version': 'バージョン',
+        'runtime': '稼働時間',
+        'launch_date': '公開日',
+        'developer': '開発者',
+        'features': '主な機能',
+        'blog_system': 'ブログシステム',
+        'share_thoughts': '考えや記事を共有',
+        'game_collection': 'ゲームコレクション',
+        'classic_games': 'クラシックミニゲーム集',
+        'download_center': 'ダウンロードセンター',
+        'software_downloads': 'ソフトウェアダウンロード管理',
+        'user_system': 'ユーザーシステム',
+        'account_management': 'アカウント管理とバインディング',
+        'multi_language': '多言語サポート',
+        'six_languages': '6言語サポート',
+        'responsive_design': 'レスポンシブデザイン',
+        'mobile_friendly': 'モバイルフレンドリー',
+        'technology': '技術スタック',
+        'backend': 'バックエンド',
+        'frontend': 'フロントエンド',
+        'styling': 'スタイリング',
+        'games': 'ゲーム',
+        'deployment': 'デプロイメント',
+        'total_users': '総ユーザー数',
+        'total_posts': '総記事数',
+        'total_games': 'ゲーム数',
+        'total_downloads': 'ダウンロード項目',
+        'calculating': '計算中...',
+        'account_binding': 'アカウントバインディング',
+        'email_binding': 'メールバインディング',
+        'phone_binding': '電話バインディング',
+        'enter_email': 'メールアドレスを入力',
+        'enter_phone': '電話番号を入力',
+        'enter_code': '認証コードを入力',
+        'send_code': 'コードを送信',
+        'bind_email': 'メールをバインド',
+        'bind_phone': '電話をバインド',
+        'batch_delete': '一括削除',
+        'website_version': 'ウェブサイトバージョン',
+        'launch_date': '起動日',
+        'developer': '開発者',
+        'features': '主な機能',
+        'tech_stack': '技術スタック',
+        'statistics': 'ウェブサイト統計',
+        'disclaimer': '免責事項',
+        'disclaimer_content': 'このウェブサイトは学習と娯楽目的のみに使用されます。ユーザーはこのウェブサイトを使用する際に、関連する法律法規を遵守する必要があります。ウェブサイトはユーザーの行為について一切の責任を負いません。'
     },
     'ko': {
         'site_name': '내 블로그',
@@ -548,7 +829,76 @@ LANG_TEXT = {
         'game_description_pong': '클래식 퐁 게임',
         'game_description_flappy': '클릭으로 새를 조종하여 장애물 피하기',
         'tank_game': '크레이지 탱크',
-        'game_description_tank': '클래식 2D 탱크 배틀 게임, 플레이어 수를 선택하여 대전'
+        'game_description_tank': '클래식 2D 탱크 배틀 게임, 플레이어 수를 선택하여 대전',
+        # 새로운 번역 키
+        'online_game': '온라인 게임',
+        'online_mode': '온라인 모드',
+        'local_mode': '로컬 모드',
+        'connecting': '연결 중...',
+        'connected': '연결됨',
+        'disconnected': '연결 끊김',
+        'please_wait': '잠시 기다려주세요',
+        'connection_status': '연결 상태',
+        'matching': '매칭 중',
+        'searching_players': '플레이어 검색 중...',
+        'cancel_matching': '매칭 취소',
+        'left_matching': '매칭 큐를 떠났습니다',
+        'game_room': '게임 룸',
+        'room_id': '룸 ID',
+        'players': '플레이어',
+        'ready': '준비',
+        'waiting': '대기 중',
+        'leave_room': '룸 떠나기',
+        'game_info': '게임 정보',
+        'game_started': '게임 시작!',
+        'about_website': '웹사이트 소개',
+        'website_info': '웹사이트 정보',
+        'version': '버전',
+        'runtime': '실행 시간',
+        'launch_date': '출시일',
+        'developer': '개발자',
+        'features': '주요 기능',
+        'blog_system': '블로그 시스템',
+        'share_thoughts': '생각과 글 공유',
+        'game_collection': '게임 컬렉션',
+        'classic_games': '클래식 미니게임 모음',
+        'download_center': '다운로드 센터',
+        'software_downloads': '소프트웨어 다운로드 관리',
+        'user_system': '사용자 시스템',
+        'account_management': '계정 관리 및 바인딩',
+        'multi_language': '다국어 지원',
+        'six_languages': '6개 언어 지원',
+        'responsive_design': '반응형 디자인',
+        'mobile_friendly': '모바일 친화적',
+        'technology': '기술 스택',
+        'backend': '백엔드',
+        'frontend': '프론트엔드',
+        'styling': '스타일링',
+        'games': '게임',
+        'deployment': '배포',
+        'total_users': '총 사용자 수',
+        'total_posts': '총 게시물 수',
+        'total_games': '게임 수',
+        'total_downloads': '다운로드 항목',
+        'calculating': '계산 중...',
+        'account_binding': '계정 바인딩',
+        'email_binding': '이메일 바인딩',
+        'phone_binding': '전화 바인딩',
+        'enter_email': '이메일 입력',
+        'enter_phone': '전화번호 입력',
+        'enter_code': '인증 코드 입력',
+        'send_code': '코드 전송',
+        'bind_email': '이메일 바인딩',
+        'bind_phone': '전화 바인딩',
+        'batch_delete': '일괄 삭제',
+        'website_version': '웹사이트 버전',
+        'launch_date': '시작일',
+        'developer': '개발자',
+        'features': '주요 기능',
+        'tech_stack': '기술 스택',
+        'statistics': '웹사이트 통계',
+        'disclaimer': '면책 조항',
+        'disclaimer_content': '이 웹사이트는 학습 및 오락 목적으로만 사용됩니다. 사용자는 이 웹사이트를 사용할 때 관련 법률 및 규정을 준수해야 합니다. 웹사이트는 사용자의 행동에 대해 어떠한 책임도 지지 않습니다.'
     },
     'ru': {
         'site_name': 'Мой блог',
@@ -622,7 +972,76 @@ LANG_TEXT = {
         'game_description_pong': 'Классическая игра Понг',
         'game_description_flappy': 'Управляйте птицей, избегая препятствий',
         'tank_game': 'Безумные Танки',
-        'game_description_tank': 'Классическая 2D танковая битва, выберите количество игроков для сражения'
+        'game_description_tank': 'Классическая 2D танковая битва, выберите количество игроков для сражения',
+        # Новые ключи перевода
+        'online_game': 'Онлайн игра',
+        'online_mode': 'Онлайн режим',
+        'local_mode': 'Локальный режим',
+        'connecting': 'Подключение...',
+        'connected': 'Подключено',
+        'disconnected': 'Отключено',
+        'please_wait': 'Пожалуйста, подождите',
+        'connection_status': 'Статус подключения',
+        'matching': 'Поиск соперника',
+        'searching_players': 'Поиск игроков...',
+        'cancel_matching': 'Отменить поиск',
+        'left_matching': 'Покинул очередь поиска',
+        'game_room': 'Игровая комната',
+        'room_id': 'ID комнаты',
+        'players': 'Игроки',
+        'ready': 'Готов',
+        'waiting': 'Ожидание',
+        'leave_room': 'Покинуть комнату',
+        'game_info': 'Информация об игре',
+        'game_started': 'Игра началась!',
+        'about_website': 'О сайте',
+        'website_info': 'Информация о сайте',
+        'version': 'Версия',
+        'runtime': 'Время работы',
+        'launch_date': 'Дата запуска',
+        'developer': 'Разработчик',
+        'features': 'Основные функции',
+        'blog_system': 'Система блога',
+        'share_thoughts': 'Делиться мыслями и статьями',
+        'game_collection': 'Коллекция игр',
+        'classic_games': 'Коллекция классических мини-игр',
+        'download_center': 'Центр загрузок',
+        'software_downloads': 'Управление загрузками ПО',
+        'user_system': 'Пользовательская система',
+        'account_management': 'Управление аккаунтами и привязка',
+        'multi_language': 'Многоязычная поддержка',
+        'six_languages': 'Поддержка 6 языков',
+        'responsive_design': 'Адаптивный дизайн',
+        'mobile_friendly': 'Мобильная версия',
+        'technology': 'Технологический стек',
+        'backend': 'Backend',
+        'frontend': 'Frontend',
+        'styling': 'Стилизация',
+        'games': 'Игры',
+        'deployment': 'Развертывание',
+        'total_users': 'Всего пользователей',
+        'total_posts': 'Всего постов',
+        'total_games': 'Количество игр',
+        'total_downloads': 'Элементы загрузки',
+        'calculating': 'Вычисление...',
+        'account_binding': 'Привязка аккаунта',
+        'email_binding': 'Привязка email',
+        'phone_binding': 'Привязка телефона',
+        'enter_email': 'Введите email',
+        'enter_phone': 'Введите номер телефона',
+        'enter_code': 'Введите код подтверждения',
+        'send_code': 'Отправить код',
+        'bind_email': 'Привязать email',
+        'bind_phone': 'Привязать телефон',
+        'batch_delete': 'Массовое удаление',
+        'website_version': 'Версия сайта',
+        'launch_date': 'Дата запуска',
+        'developer': 'Разработчик',
+        'features': 'Основные функции',
+        'tech_stack': 'Технологический стек',
+        'statistics': 'Статистика сайта',
+        'disclaimer': 'Отказ от ответственности',
+        'disclaimer_content': 'Этот веб-сайт предназначен только для обучения и развлечения. Пользователи должны соблюдать соответствующие законы и правила при использовании этого веб-сайта. Веб-сайт не несет ответственности за действия пользователей.'
     },
     'es': {
         'site_name': 'Mi Blog',
@@ -696,7 +1115,76 @@ LANG_TEXT = {
         'game_description_pong': 'Juego clásico de Pong',
         'game_description_flappy': 'Controla el pájaro, evita obstáculos',
         'tank_game': 'Tanques Locos',
-        'game_description_tank': 'Juego clásico de batalla de tanques 2D, elige el número de jugadores para luchar'
+        'game_description_tank': 'Juego clásico de batalla de tanques 2D, elige el número de jugadores para luchar',
+        # Nuevas claves de traducción
+        'online_game': 'Juego en línea',
+        'online_mode': 'Modo en línea',
+        'local_mode': 'Modo local',
+        'connecting': 'Conectando...',
+        'connected': 'Conectado',
+        'disconnected': 'Desconectado',
+        'please_wait': 'Por favor espera',
+        'connection_status': 'Estado de conexión',
+        'matching': 'Emparejando',
+        'searching_players': 'Buscando jugadores...',
+        'cancel_matching': 'Cancelar emparejamiento',
+        'left_matching': 'Salió de la cola de emparejamiento',
+        'game_room': 'Sala de juego',
+        'room_id': 'ID de sala',
+        'players': 'Jugadores',
+        'ready': 'Listo',
+        'waiting': 'Esperando',
+        'leave_room': 'Salir de la sala',
+        'game_info': 'Información del juego',
+        'game_started': '¡Juego iniciado!',
+        'about_website': 'Acerca del sitio web',
+        'website_info': 'Información del sitio web',
+        'version': 'Versión',
+        'runtime': 'Tiempo de ejecución',
+        'launch_date': 'Fecha de lanzamiento',
+        'developer': 'Desarrollador',
+        'features': 'Características principales',
+        'blog_system': 'Sistema de blog',
+        'share_thoughts': 'Compartir pensamientos y artículos',
+        'game_collection': 'Colección de juegos',
+        'classic_games': 'Colección de mini-juegos clásicos',
+        'download_center': 'Centro de descargas',
+        'software_downloads': 'Gestión de descargas de software',
+        'user_system': 'Sistema de usuarios',
+        'account_management': 'Gestión de cuentas y vinculación',
+        'multi_language': 'Soporte multiidioma',
+        'six_languages': 'Soporte para 6 idiomas',
+        'responsive_design': 'Diseño responsivo',
+        'mobile_friendly': 'Amigable para móviles',
+        'technology': 'Stack tecnológico',
+        'backend': 'Backend',
+        'frontend': 'Frontend',
+        'styling': 'Estilos',
+        'games': 'Juegos',
+        'deployment': 'Despliegue',
+        'total_users': 'Total de usuarios',
+        'total_posts': 'Total de publicaciones',
+        'total_games': 'Cantidad de juegos',
+        'total_downloads': 'Elementos de descarga',
+        'calculating': 'Calculando...',
+        'account_binding': 'Vinculación de cuenta',
+        'email_binding': 'Vinculación de email',
+        'phone_binding': 'Vinculación de teléfono',
+        'enter_email': 'Ingresa email',
+        'enter_phone': 'Ingresa número de teléfono',
+        'enter_code': 'Ingresa código de verificación',
+        'send_code': 'Enviar código',
+        'bind_email': 'Vincular email',
+        'bind_phone': 'Vincular teléfono',
+        'batch_delete': 'Eliminación masiva',
+        'website_version': 'Versión del sitio web',
+        'launch_date': 'Fecha de lanzamiento',
+        'developer': 'Desarrollador',
+        'features': 'Características principales',
+        'tech_stack': 'Stack tecnológico',
+        'statistics': 'Estadísticas del sitio web',
+        'disclaimer': 'Descargo de responsabilidad',
+        'disclaimer_content': 'Este sitio web es solo para fines educativos y de entretenimiento. Los usuarios deben cumplir con las leyes y regulaciones relevantes al usar este sitio web. El sitio web no se hace responsable del comportamiento del usuario.'
     }
 }
 
@@ -711,7 +1199,7 @@ def setlang(lang):
 
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'register', 'setlang', 'static']:
+    if request.endpoint in ['login', 'register', 'setlang', 'static', 'send_email_code', 'send_phone_code', 'bind_email', 'bind_phone', 'about', 'games']:
         return
     if 'user' not in session:
         return redirect(url_for('login'))
@@ -741,13 +1229,6 @@ def index():
 
     return render_template('index.html', posts=display_posts, user=user, lang=lang, languages=LANGUAGES, year=year, text=text, CODE_TIPS=CODE_TIPS)
 
-@app.route('/about')
-def about():
-    user = session.get('user')
-    lang = get_lang()
-    year = datetime.datetime.now().year
-    text = LANG_TEXT[lang]
-    return render_template('about.html', user=user, lang=lang, languages=LANGUAGES, year=year, text=text)
 
 @app.route('/games')
 def games():
@@ -867,7 +1348,17 @@ def downloads():
     lang = get_lang()
     year = datetime.datetime.now().year
     text = LANG_TEXT[lang]
-    return render_template('downloads.html', downloads=downloads_store, user=user, lang=lang, languages=LANGUAGES, year=year, text=text)
+    # 为每个下载项加载评论
+    load_comments()
+    downloads_with_comments = []
+    for i, download in enumerate(downloads_store):
+        download_comments = [c for c in comments if c['type'] == 'download' and c['target_id'] == i]
+        downloads_with_comments.append({
+            'download': download,
+            'comments': download_comments,
+            'index': i
+        })
+    return render_template('downloads.html', downloads=downloads_store, downloads_with_comments=downloads_with_comments, user=user, lang=lang, languages=LANGUAGES, year=year, text=text)
 
 @app.route('/admin/new_download', methods=['GET', 'POST'])
 def new_download():
@@ -881,7 +1372,7 @@ def new_download():
         url_value = request.form.get('url')
         if name and url_value:
             downloads_store.append({'name': name, 'url': url_value})
-            save_downloads()
+            save_downloads(downloads_store)
             return redirect(url_for('downloads'))
         flash('名称与链接不能为空')
     return render_template('new_download.html', lang=lang, languages=LANGUAGES, text=text)
@@ -893,8 +1384,30 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        phone_code = request.form.get('phone_code', '').strip()
+        email_code = request.form.get('email_code', '').strip()
+        
+        # 注册用户
         result = register_user(username, password)
         if result == '':
+            # 如果提供了手机号，验证并绑定
+            if phone and phone_code:
+                if verify_phone_code(phone, phone_code):
+                    bind_phone_to_user(username, phone)
+                else:
+                    flash('手机验证码错误')
+                    return render_template('register.html', lang=lang, languages=LANGUAGES, text=text)
+            
+            # 如果提供了邮箱，验证并绑定
+            if email and email_code:
+                if verify_email_code(email, email_code):
+                    bind_email_to_user(username, email)
+                else:
+                    flash('邮箱验证码错误')
+                    return render_template('register.html', lang=lang, languages=LANGUAGES, text=text)
+            
             flash(text['register_success'])
             return redirect(url_for('login'))
         else:
@@ -911,6 +1424,7 @@ def login():
         if twofa:
             if session.get('2fa_code') and twofa == session.get('2fa_code') and session.get('2fa_user'):
                 session['user'] = session.pop('2fa_user')
+                session['user_id'] = 'admin'
                 session.pop('2fa_code', None)
                 flash('管理员登录成功！')
                 return redirect(url_for('index'))
@@ -923,6 +1437,7 @@ def login():
         # 游客身份登录
         if username == '游客' and (not password or password == ''):
             session['user'] = '游客'
+            session['user_id'] = str(uuid.uuid4())
             flash('以游客身份登录成功！')
             return redirect(url_for('index'))
 
@@ -936,6 +1451,7 @@ def login():
                 return redirect(url_for('login', need2fa=1))
             else:
                 session['user'] = username
+                session['user_id'] = str(uuid.uuid4())
                 flash(text['login_register'] + '成功！')
                 return redirect(url_for('index'))
         else:
@@ -1089,7 +1605,10 @@ def post_detail(post_id):
     
     if post:
         user = session.get('user')
-        return render_template('post_detail.html', post=post, post_id=post_id, user=user, lang=lang, languages=LANGUAGES, text=text)
+        # 加载评论
+        load_comments()
+        post_comments = [c for c in comments if c['type'] == 'post' and c['target_id'] == post_id]
+        return render_template('post_detail.html', post=post, post_id=post_id, user=user, lang=lang, languages=LANGUAGES, text=text, comments=post_comments)
     else:
         flash('文章未找到')
         return redirect(url_for('index'))
@@ -1283,9 +1802,652 @@ def edit_post(post_id):
     # GET 请求时，渲染编辑页面
     return render_template('edit_post.html', post=post, post_id=post_id, lang=lang, languages=LANGUAGES, text=text)
 
+@app.route('/admin/edit_download', methods=['POST'])
+def edit_download():
+    if session.get('user') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    data = request.get_json()
+    index = data.get('index')
+    name = data.get('name')
+    url = data.get('url')
+    
+    if not all([index is not None, name, url]):
+        return jsonify({'success': False, 'message': '参数不完整'}), 400
+    
+    try:
+        downloads = load_downloads()
+        if 0 <= index < len(downloads):
+            downloads[index] = {'name': name, 'url': url}
+            save_downloads(downloads)
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': '索引超出范围'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/admin/delete_download', methods=['POST'])
+def delete_download():
+    if session.get('user') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    data = request.get_json()
+    index = data.get('index')
+    
+    if index is None:
+        return jsonify({'success': False, 'message': '缺少索引参数'}), 400
+    
+    try:
+        downloads = load_downloads()
+        if 0 <= index < len(downloads):
+            downloads.pop(index)
+            save_downloads(downloads)
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': '索引超出范围'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/admin/batch_delete_downloads', methods=['POST'])
+def batch_delete_downloads():
+    if session.get('user') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    data = request.get_json()
+    indices = data.get('indices', [])
+    
+    if not indices:
+        return jsonify({'success': False, 'message': '没有选择要删除的项目'}), 400
+    
+    try:
+        downloads = load_downloads()
+        # 按索引从大到小排序，避免删除时索引变化
+        indices.sort(reverse=True)
+        
+        for index in indices:
+            if 0 <= index < len(downloads):
+                downloads.pop(index)
+        
+        save_downloads(downloads)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 验证码存储（实际应用中应使用Redis等）
+verification_codes = {}
+
+# 游戏房间管理系统
+game_rooms = {}
+user_sessions = {}  # 存储用户会话信息
+matching_queue = {}  # 匹配队列
+
+class GameRoom:
+    def __init__(self, room_id, game_type, max_players=4):
+        self.room_id = room_id
+        self.game_type = game_type
+        self.max_players = max_players
+        self.players = []
+        self.owner = None
+        self.status = 'waiting'  # waiting, playing, finished
+        self.created_at = time.time()
+        self.game_data = {}
+    
+    def add_player(self, user_id, username):
+        if len(self.players) < self.max_players and user_id not in [p['id'] for p in self.players]:
+            player = {
+                'id': user_id,
+                'username': username,
+                'joined_at': time.time(),
+                'ready': False
+            }
+            self.players.append(player)
+            if not self.owner:
+                self.owner = user_id
+            return True
+        return False
+    
+    def remove_player(self, user_id):
+        self.players = [p for p in self.players if p['id'] != user_id]
+        if self.owner == user_id and self.players:
+            self.owner = self.players[0]['id']
+        elif not self.players:
+            self.owner = None
+    
+    def is_full(self):
+        return len(self.players) >= self.max_players
+    
+    def can_start(self):
+        return len(self.players) >= 2 and all(p['ready'] for p in self.players)
+
+@app.route('/send_email_code', methods=['POST'])
+def send_email_code():
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'success': False, 'message': '邮箱地址不能为空'}), 400
+    
+    # 生成6位数字验证码
+    import random
+    code = str(random.randint(100000, 999999))
+    
+    # 存储验证码（5分钟有效期）
+    verification_codes[f'email_{email}'] = {
+        'code': code,
+        'expires': time.time() + 300
+    }
+    
+    # 这里应该发送邮件，现在只是打印到控制台
+    message = f"【我的博客】验证码：{code}，用于邮箱绑定。五分钟内有效，请勿将验证码告诉其他人。"
+    print(f"邮箱验证码发送到 {email}: {message}")
+    
+    return jsonify({'success': True, 'message': '验证码已发送'})
+
+@app.route('/send_phone_code', methods=['POST'])
+def send_phone_code():
+    data = request.get_json()
+    phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'message': '手机号不能为空'}), 400
+    
+    # 生成6位数字验证码
+    import random
+    code = str(random.randint(100000, 999999))
+    
+    # 存储验证码（5分钟有效期）
+    verification_codes[f'phone_{phone}'] = {
+        'code': code,
+        'expires': time.time() + 300
+    }
+    
+    # 这里应该发送短信，现在只是打印到控制台
+    message = f"【我的博客】验证码：{code}，用于手机号绑定。五分钟内有效，请勿将验证码告诉其他人。"
+    print(f"手机验证码发送到 {phone}: {message}")
+    
+    return jsonify({'success': True, 'message': '验证码已发送'})
+
+@app.route('/bind_email', methods=['POST'])
+def bind_email():
+    if session.get('user') in ['admin', '游客']:
+        return jsonify({'success': False, 'message': '游客和管理员不能绑定邮箱'}), 403
+    
+    data = request.get_json()
+    email = data.get('email')
+    code = data.get('code')
+    
+    if not all([email, code]):
+        return jsonify({'success': False, 'message': '邮箱和验证码不能为空'}), 400
+    
+    # 验证验证码
+    key = f'email_{email}'
+    if key not in verification_codes:
+        return jsonify({'success': False, 'message': '验证码不存在或已过期'}), 400
+    
+    stored_data = verification_codes[key]
+    if time.time() > stored_data['expires']:
+        del verification_codes[key]
+        return jsonify({'success': False, 'message': '验证码已过期'}), 400
+    
+    if stored_data['code'] != code:
+        return jsonify({'success': False, 'message': '验证码错误'}), 400
+    
+    # 验证成功，绑定邮箱
+    try:
+        users = load_users()
+        username = session.get('user')
+        if username in users:
+            users[username]['email'] = email
+            save_users(users)
+            del verification_codes[key]  # 删除已使用的验证码
+            return jsonify({'success': True, 'message': '邮箱绑定成功'})
+        else:
+            return jsonify({'success': False, 'message': '用户不存在'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/bind_phone', methods=['POST'])
+def bind_phone():
+    if session.get('user') in ['admin', '游客']:
+        return jsonify({'success': False, 'message': '游客和管理员不能绑定手机号'}), 403
+    
+    data = request.get_json()
+    phone = data.get('phone')
+    code = data.get('code')
+    
+    if not all([phone, code]):
+        return jsonify({'success': False, 'message': '手机号和验证码不能为空'}), 400
+    
+    # 验证验证码
+    key = f'phone_{phone}'
+    if key not in verification_codes:
+        return jsonify({'success': False, 'message': '验证码不存在或已过期'}), 400
+    
+    stored_data = verification_codes[key]
+    if time.time() > stored_data['expires']:
+        del verification_codes[key]
+        return jsonify({'success': False, 'message': '验证码已过期'}), 400
+    
+    if stored_data['code'] != code:
+        return jsonify({'success': False, 'message': '验证码错误'}), 400
+    
+    # 验证成功，绑定手机号
+    try:
+        users = load_users()
+        username = session.get('user')
+        if username in users:
+            users[username]['phone'] = phone
+            save_users(users)
+            del verification_codes[key]  # 删除已使用的验证码
+            return jsonify({'success': True, 'message': '手机号绑定成功'})
+        else:
+            return jsonify({'success': False, 'message': '用户不存在'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/about')
+def about():
+    lang = request.args.get('lang', 'zh')
+    text = LANG_TEXT.get(lang, LANG_TEXT['zh'])
+    languages = LANGUAGES
+    year = datetime.datetime.now().year
+    user = session.get('user', '游客')
+    
+    # 计算运行时间
+    start_time = datetime.datetime(2024, 9, 9, 0, 0, 0)
+    current_time = datetime.datetime.now()
+    runtime = current_time - start_time
+    runtime_days = runtime.days
+    runtime_hours = runtime.seconds // 3600
+    runtime_minutes = (runtime.seconds % 3600) // 60
+    
+    # 统计信息
+    users_data = load_users()
+    total_users = len(users_data) if users_data else 0
+    total_posts = len(blog_posts) if blog_posts else 0
+    total_games = 10  # 游戏数量
+    downloads_data = load_downloads()
+    total_downloads = len(downloads_data) if downloads_data else 0
+    
+    return render_template('about.html', 
+                         lang=lang, 
+                         languages=languages, 
+                         text=text, 
+                         year=year, 
+                         user=user,
+                         runtime_days=runtime_days,
+                         runtime_hours=runtime_hours,
+                         runtime_minutes=runtime_minutes,
+                         total_users=total_users,
+                         total_posts=total_posts,
+                         total_games=total_games,
+                         total_downloads=total_downloads)
+
+@app.route('/api/stats')
+def api_stats():
+    try:
+        users = load_users()
+        posts = load_posts()
+        downloads = load_downloads()
+        
+        return jsonify({
+            'success': True,
+            'users': len(users),
+            'posts': len(posts),
+            'downloads': len(downloads)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'users': 0,
+            'posts': 0,
+            'downloads': 0
+        })
+
+@app.route('/online/<game_type>')
+def online_game(game_type):
+    lang = request.args.get('lang', 'zh')
+    text = LANG_TEXT.get(lang, LANG_TEXT['zh'])
+    user = session.get('user', '游客')
+    
+    # 游戏名称映射
+    game_names = {
+        'tank': text.get('tank_game', '疯狂坦克'),
+        'snake': text.get('snake_game', '贪吃蛇'),
+        'tetris': text.get('tetris_game', '俄罗斯方块'),
+        'pacman': text.get('pacman_game', '吃豆人'),
+        'breakout': text.get('breakout_game', '打砖块'),
+        'memory': text.get('memory_game', '记忆匹配'),
+        '2048': '2048',
+        'sudoku': text.get('sudoku_game', '数独'),
+        'minesweeper': text.get('minesweeper_game', '扫雷'),
+        'asteroids': text.get('asteroids_game', '小行星'),
+        'pong': text.get('pong_game', '乒乓球'),
+        'flappy': text.get('flappy_game', '飞翔小鸟')
+    }
+    
+    game_name = game_names.get(game_type, game_type)
+    
+    return render_template('online_game.html', 
+                         game_type=game_type, 
+                         game_name=game_name, 
+                         text=text, 
+                         user=user)
+
+# WebSocket事件处理
+@socketio.on('connect')
+def handle_connect():
+    user_id = session.get('user_id')
+    username = session.get('user', '游客')
+    
+    if user_id:
+        user_sessions[user_id] = {
+            'username': username,
+            'connected_at': time.time(),
+            'current_room': None
+        }
+        emit('connected', {'message': '连接成功'})
+    else:
+        emit('error', {'message': '未登录用户'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    user_id = session.get('user_id')
+    if user_id and user_id in user_sessions:
+        current_room = user_sessions[user_id].get('current_room')
+        if current_room and current_room in game_rooms:
+            room = game_rooms[current_room]
+            room.remove_player(user_id)
+            leave_room(current_room)
+            emit('player_left', {'user_id': user_id, 'username': user_sessions[user_id]['username']}, room=current_room)
+            
+            if not room.players:
+                del game_rooms[current_room]
+        
+        del user_sessions[user_id]
+
+@socketio.on('join_matching')
+def handle_join_matching(data):
+    user_id = session.get('user_id')
+    username = session.get('user', '游客')
+    game_type = data.get('game_type')
+    
+    if not user_id:
+        emit('error', {'message': '请先登录'})
+        return
+    
+    if user_id in matching_queue:
+        emit('error', {'message': '您已在匹配队列中'})
+        return
+    
+    # 添加到匹配队列
+    matching_queue[user_id] = {
+        'username': username,
+        'game_type': game_type,
+        'joined_at': time.time()
+    }
+    
+    # 查找匹配
+    find_match(user_id, game_type)
+
+@socketio.on('leave_matching')
+def handle_leave_matching():
+    user_id = session.get('user_id')
+    if user_id in matching_queue:
+        del matching_queue[user_id]
+        emit('left_matching', {'message': '已离开匹配队列'})
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    user_id = session.get('user_id')
+    username = session.get('user', '游客')
+    room_id = data.get('room_id')
+    
+    if not user_id:
+        emit('error', {'message': '请先登录'})
+        return
+    
+    if room_id not in game_rooms:
+        emit('error', {'message': '房间不存在'})
+        return
+    
+    room = game_rooms[room_id]
+    if room.add_player(user_id, username):
+        join_room(room_id)
+        user_sessions[user_id]['current_room'] = room_id
+        
+        emit('joined_room', {
+            'room_id': room_id,
+            'players': room.players,
+            'owner': room.owner
+        })
+        
+        emit('player_joined', {
+            'user_id': user_id,
+            'username': username,
+            'players': room.players
+        }, room=room_id)
+    else:
+        emit('error', {'message': '无法加入房间'})
+
+@socketio.on('leave_room')
+def handle_leave_room():
+    user_id = session.get('user_id')
+    if user_id and user_id in user_sessions:
+        current_room = user_sessions[user_id].get('current_room')
+        if current_room and current_room in game_rooms:
+            room = game_rooms[current_room]
+            room.remove_player(user_id)
+            leave_room(current_room)
+            
+            emit('left_room', {'message': '已离开房间'})
+            emit('player_left', {
+                'user_id': user_id,
+                'username': user_sessions[user_id]['username'],
+                'players': room.players
+            }, room=current_room)
+            
+            if not room.players:
+                del game_rooms[current_room]
+            
+            user_sessions[user_id]['current_room'] = None
+
+@socketio.on('toggle_ready')
+def handle_toggle_ready(data=None):
+    user_id = session.get('user_id')
+    if user_id and user_id in user_sessions:
+        current_room = user_sessions[user_id].get('current_room')
+        if current_room and current_room in game_rooms:
+            room = game_rooms[current_room]
+            for player in room.players:
+                if player['id'] == user_id:
+                    player['ready'] = not player['ready']
+                    break
+            
+            emit('player_ready_changed', {
+                'user_id': user_id,
+                'ready': player['ready'],
+                'players': room.players,
+                'can_start': room.can_start()
+            }, room=current_room)
+
+@socketio.on('start_game')
+def handle_start_game():
+    user_id = session.get('user_id')
+    if user_id and user_id in user_sessions:
+        current_room = user_sessions[user_id].get('current_room')
+        if current_room and current_room in game_rooms:
+            room = game_rooms[current_room]
+            if room.owner == user_id and room.can_start():
+                room.status = 'playing'
+                emit('game_started', {
+                    'room_id': current_room,
+                    'game_type': room.game_type,
+                    'players': room.players
+                }, room=current_room)
+
+def find_match(user_id, game_type):
+    """查找匹配的玩家"""
+    # 查找相同游戏类型的其他玩家
+    available_players = []
+    for uid, info in matching_queue.items():
+        if uid != user_id and info['game_type'] == game_type:
+            available_players.append((uid, info))
+    
+    if available_players:
+        # 找到匹配，创建房间
+        room_id = str(uuid.uuid4())
+        room = GameRoom(room_id, game_type)
+        game_rooms[room_id] = room
+        
+        # 添加当前玩家
+        room.add_player(user_id, user_sessions[user_id]['username'])
+        user_sessions[user_id]['current_room'] = room_id
+        
+        # 添加匹配的玩家
+        for uid, info in available_players[:3]:  # 最多4人
+            room.add_player(uid, info['username'])
+            user_sessions[uid]['current_room'] = room_id
+            del matching_queue[uid]
+        
+        del matching_queue[user_id]
+        
+        # 通知所有玩家
+        for player in room.players:
+            emit('match_found', {
+                'room_id': room_id,
+                'players': room.players,
+                'owner': room.owner
+            }, room=player['id'])
+    else:
+        # 没有找到匹配，等待30秒后询问是否加入房间
+        def check_timeout():
+            time.sleep(30)
+            if user_id in matching_queue:
+                emit('match_timeout', {
+                    'message': '匹配超时，是否加入当前房间？',
+                    'available_rooms': get_available_rooms(game_type)
+                }, room=user_id)
+        
+        import threading
+        threading.Thread(target=check_timeout).start()
+
+def get_available_rooms(game_type):
+    """获取可用的房间列表"""
+    available = []
+    for room_id, room in game_rooms.items():
+        if room.game_type == game_type and not room.is_full() and room.status == 'waiting':
+            available.append({
+                'room_id': room_id,
+                'player_count': len(room.players),
+                'max_players': room.max_players
+            })
+    return available
+
 load_posts() # 模块导入时加载文章，适配 WSGI 部署
 load_users()
 ensure_admin_exists()
 load_downloads()
+# 评论相关路由
+@app.route('/api/comments/<comment_type>/<int:target_id>', methods=['GET'])
+def get_comments(comment_type, target_id):
+    """获取指定目标的评论"""
+    load_comments()
+    target_comments = [c for c in comments if c['type'] == comment_type and c['target_id'] == target_id]
+    return jsonify({'success': True, 'comments': target_comments})
+
+@app.route('/api/comments', methods=['POST'])
+def add_comment():
+    """添加评论"""
+    if session.get('user') == '游客':
+        return jsonify({'success': False, 'message': '游客不能发表评论'}), 403
+    
+    data = request.get_json()
+    comment_type = data.get('type')  # 'post' 或 'download'
+    target_id = data.get('target_id')
+    content = data.get('content', '').strip()
+    
+    if not content:
+        return jsonify({'success': False, 'message': '评论内容不能为空'}), 400
+    
+    if len(content) > 500:
+        return jsonify({'success': False, 'message': '评论内容不能超过500字符'}), 400
+    
+    # 检查冷却时间
+    current_time = time.time()
+    user = session.get('user')
+    user_comments = [c for c in comments if c['user'] == user]
+    
+    if user_comments:
+        last_comment = max(user_comments, key=lambda x: x['timestamp'])
+        if current_time < last_comment.get('cooldown_end', 0):
+            remaining = int(last_comment['cooldown_end'] - current_time)
+            return jsonify({'success': False, 'message': f'请等待 {remaining} 秒后再发送评论'}), 429
+    
+    # 添加评论
+    comment_id = len(comments) + 1
+    new_comment = {
+        'id': comment_id,
+        'type': comment_type,
+        'target_id': target_id,
+        'user': user,
+        'content': content,
+        'timestamp': current_time,
+        'cooldown_end': current_time + 3  # 3秒冷却时间
+    }
+    
+    comments.append(new_comment)
+    save_comments()
+    
+    return jsonify({'success': True, 'message': '评论发表成功', 'comment': new_comment})
+
+@app.route('/api/comments/<int:comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    """删除评论（仅管理员）"""
+    if session.get('user') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    load_comments()
+    global comments
+    
+    # 查找并删除评论
+    for i, comment in enumerate(comments):
+        if comment['id'] == comment_id:
+            del comments[i]
+            save_comments()
+            return jsonify({'success': True, 'message': '评论删除成功'})
+    
+    return jsonify({'success': False, 'message': '评论不存在'}), 404
+
+@app.route('/api/comments/<int:comment_id>', methods=['PUT'])
+def edit_comment(comment_id):
+    """编辑评论（仅管理员）"""
+    if session.get('user') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    data = request.get_json()
+    new_content = data.get('content', '').strip()
+    
+    if not new_content:
+        return jsonify({'success': False, 'message': '评论内容不能为空'}), 400
+    
+    if len(new_content) > 500:
+        return jsonify({'success': False, 'message': '评论内容不能超过500字符'}), 400
+    
+    load_comments()
+    global comments
+    
+    # 查找并更新评论
+    for comment in comments:
+        if comment['id'] == comment_id:
+            comment['content'] = new_content
+            comment['edited'] = True
+            comment['edit_time'] = time.time()
+            save_comments()
+            return jsonify({'success': True, 'message': '评论修改成功', 'comment': comment})
+    
+    return jsonify({'success': False, 'message': '评论不存在'}), 404
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
